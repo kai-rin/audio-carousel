@@ -4,9 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey. Single-developer, MIT-licensed, OSS on GitHub.
+Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey. Single-developer, MIT-licensed. GitHub repo is currently private; intended for public OSS release later.
 
 Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
+
+## Layout
+
+```
+src/AudioCarousel/        # app (Audio/, Config/, Cycle/, Hotkey/, I18n/, Startup/, UI/, AppVersion.cs, TrayApplicationContext.cs)
+tests/AudioCarousel.Tests/
+scripts/publish.ps1       # the only supported way to build the release exe
+.github/workflows/        # ci.yml (build/test/format), release.yml (tag → attached exe)
+docs/superpowers/specs/   # design docs
+```
 
 ## Tech
 
@@ -18,9 +28,11 @@ Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 
 ```bash
 dotnet build                 # dev build (JIT, fast)
-dotnet test                  # 87 unit tests, runs <1s
+dotnet test                  # all unit tests, runs <1s
 dotnet format                # fix EOL/whitespace per .editorconfig (CI runs --verify-no-changes)
-pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
+pwsh ./scripts/publish.ps1                  # local build → publish/AudioCarousel.exe (~108 MB), version = csproj default 1.0.0-dev
+pwsh ./scripts/publish.ps1 -Version 1.2.3   # release-style override; CI passes the tag here
+powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo | fl ProductVersion, FileVersion"  # verify built version
 ```
 
 `scripts/publish.ps1` is the **only** supported way to produce a release exe. Do not construct `dotnet publish` flags by hand.
@@ -40,6 +52,8 @@ pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 - **Atomic config writes**: `ConfigStore.SaveInternal` writes to `<path>.tmp` then `File.Replace` with a 5-attempt retry (antivirus / search-indexer can transiently lock the file). Do not "simplify" this back to a direct write.
 - **Tests that touch the real registry** (`StartupRegistrationTests`) use a unique value name (`AudioCarousel-TEST-<guid>`) and clean up in `Dispose`. Follow this pattern for any new registry-touching tests.
 - **Tests that mutate `Strings._current`** must be in `[Collection("StringsState")]` (defined in `StringsTests.cs`). xUnit parallelizes test classes by default; without the collection, classes that call `Strings.SetLanguage` race against each other and produce flaky failures.
+- **Testable logic goes in `public static` helpers**, not `internal` + `InternalsVisibleTo`. See `Strings`, `HotkeyParser`, `AppVersion` — the test project consumes them through public API only.
+- **About dialog reads `AssemblyInformationalVersion` via `AppVersion.Display`**, which strips the `+sha` suffix appended by `SourceRevisionId`. Add new version-displaying UI through `AppVersion.Display`, not `Assembly.GetName().Version` (that returns the 4-part `AssemblyVersion`, which can't carry prerelease tags like `1.0.0-dev`).
 
 ## Workflow
 
