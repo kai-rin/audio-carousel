@@ -15,7 +15,7 @@ internal static class Program
         if (!createdNew)
         {
             // Resolve language for the message box.
-            Strings.SetLanguage(Strings.ResolveLanguage("auto", Strings.IsCurrentUiCultureJapanese()));
+            Strings.SetLanguage(Strings.ResolveLanguage("auto", Strings.GetCurrentUiCultureName()));
             MessageBox.Show(Strings.Get("error.alreadyRunning"),
                 Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;

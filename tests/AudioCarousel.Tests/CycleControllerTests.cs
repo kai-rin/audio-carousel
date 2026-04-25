@@ -7,6 +7,7 @@ using Xunit;
 
 namespace AudioCarousel.Tests;
 
+[Collection("StringsState")]
 public class CycleControllerTests
 {
     private sealed class PersistCounter

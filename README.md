@@ -1,5 +1,7 @@
 # Audio Carousel
 
+[English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)
+
 A lightweight Windows tray utility that switches the system default audio
 output device through a configured list with a single global hotkey.
 

@@ -18,7 +18,7 @@ Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 
 ```bash
 dotnet build                 # dev build (JIT, fast)
-dotnet test                  # 34 unit tests, runs <1s
+dotnet test                  # 87 unit tests, runs <1s
 pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 ```
 
@@ -33,14 +33,16 @@ pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 
 ## Conventions
 
-- **All user-facing strings go through `src/AudioCarousel/I18n/Strings.cs`** (en/ja table). Never hardcode UI text in WinForms code; if you add a new label or message, add a key to the table first.
+- **All user-facing strings go through `src/AudioCarousel/I18n/Strings.cs`** (10-language table: en, ja, zh-Hans, zh-Hant, es, fr, de, pt-BR, ru, ko). Use the `M(...)` helper to supply all 10 values in order, or `Same("X")` for proper nouns / language self-names. Never hardcode UI text in WinForms code; missing per-language entries fall back to English.
 - **WFO1000 warnings**: properties on custom WinForms controls that return non-trivial types need `[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]` (e.g., `HotkeyTextBox.Value`).
 - **Atomic config writes**: `ConfigStore.SaveInternal` writes to `<path>.tmp` then `File.Replace` with a 5-attempt retry (antivirus / search-indexer can transiently lock the file). Do not "simplify" this back to a direct write.
 - **Tests that touch the real registry** (`StartupRegistrationTests`) use a unique value name (`AudioCarousel-TEST-<guid>`) and clean up in `Dispose`. Follow this pattern for any new registry-touching tests.
+- **Tests that mutate `Strings._current`** must be in `[Collection("StringsState")]` (defined in `StringsTests.cs`). xUnit parallelizes test classes by default; without the collection, classes that call `Strings.SetLanguage` race against each other and produce flaky failures.
 
 ## Workflow
 
 - **Branch**: `main` only (no feature branches for this project).
+- **README is multilingual**: `README.md` (en), `README.ja.md`, `README.zh-Hans.md`. The language-switcher line `[English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)` is identical in all three. When updating user-facing content, update all three or note the others as out-of-date.
 - **Commit messages**: Japanese (per global preference). Code identifiers, comments, and file/symbol names stay English.
 - **`git push` is gated by explicit user request.** This is a private repo; do not push automatically after a commit. Wait for the user to ask.
 - **Publish smoke test**: after running `publish.ps1`, the exe lives in `publish/`. If the previous instance is still running, `Remove-Item publish/` fails. Always `taskkill.exe //F //IM AudioCarousel.exe` first. Smoke tests also write a `publish/audio-carousel.json` that should be cleaned up before commit/release.

@@ -84,9 +84,17 @@ public sealed class SettingsForm : Form
         };
         _languageCombo.Items.AddRange(new object[]
         {
-            new LangItem("auto", Strings.Get("settings.languageAuto")),
-            new LangItem("en",   Strings.Get("settings.languageEn")),
-            new LangItem("ja",   Strings.Get("settings.languageJa")),
+            new LangItem("auto",    Strings.Get("settings.languageAuto")),
+            new LangItem("en",      Strings.Get("settings.languageEn")),
+            new LangItem("ja",      Strings.Get("settings.languageJa")),
+            new LangItem("zh-Hans", Strings.Get("settings.languageZhHans")),
+            new LangItem("zh-Hant", Strings.Get("settings.languageZhHant")),
+            new LangItem("es",      Strings.Get("settings.languageEs")),
+            new LangItem("fr",      Strings.Get("settings.languageFr")),
+            new LangItem("de",      Strings.Get("settings.languageDe")),
+            new LangItem("pt-BR",   Strings.Get("settings.languagePtBr")),
+            new LangItem("ru",      Strings.Get("settings.languageRu")),
+            new LangItem("ko",      Strings.Get("settings.languageKo")),
         });
 
         _startupCheck = new CheckBox

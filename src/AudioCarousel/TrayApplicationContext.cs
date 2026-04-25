@@ -36,7 +36,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         (_config, _freshlyCreated, wasCorrupted) = _store.Load();
 
         // Apply language.
-        Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.IsCurrentUiCultureJapanese()));
+        Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.GetCurrentUiCultureName()));
 
         _startup = new StartupRegistration();
         if (_config.StartWithWindows)
@@ -110,7 +110,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _config.StartWithWindows = newCfg.StartWithWindows;
             if (_config.CurrentIndex >= _config.Devices.Count) _config.CurrentIndex = 0;
 
-            Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.IsCurrentUiCultureJapanese()));
+            Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.GetCurrentUiCultureName()));
             _tray.ApplyLabels();
             _tray.SetStartupChecked(_config.StartWithWindows);
 
