@@ -1,0 +1,29 @@
+version: 2
+
+# Dependency update PRs — keeps NuGet packages and GitHub Actions
+# pinned versions current.
+
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/src/AudioCarousel"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "nuget"
+    directory: "/tests/AudioCarousel.Tests"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(test)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
