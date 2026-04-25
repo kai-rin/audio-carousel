@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Windows.Forms;
 using AudioCarousel.Audio;
 using AudioCarousel.Config;
@@ -163,8 +162,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
     private void ShowAbout()
     {
-        string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "dev";
-        MessageBox.Show($"{Strings.Get("app.title")} v{version}\n\n{Strings.Get("about.body")}",
+        MessageBox.Show($"{Strings.Get("app.title")} v{AppVersion.Display}\n\n{Strings.Get("about.body")}",
             Strings.Get("tray.about"), MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 

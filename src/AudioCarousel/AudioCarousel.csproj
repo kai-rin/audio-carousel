@@ -9,6 +9,9 @@
     <AssemblyName>AudioCarousel</AssemblyName>
     <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
 
+    <!-- Default version for local/dev builds. CI overrides via -p:Version=<tag> from release.yml. -->
+    <Version>1.0.0-dev</Version>
+
     <!-- AOT settings (apply at publish only; dev build stays JIT) -->
     <PublishAot Condition="'$(IsPublishing)' == 'true'">true</PublishAot>
     <InvariantGlobalization>false</InvariantGlobalization>

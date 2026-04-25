@@ -19,6 +19,7 @@ Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 ```bash
 dotnet build                 # dev build (JIT, fast)
 dotnet test                  # 87 unit tests, runs <1s
+dotnet format                # fix EOL/whitespace per .editorconfig (CI runs --verify-no-changes)
 pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 ```
 
@@ -34,6 +35,7 @@ pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 ## Conventions
 
 - **All user-facing strings go through `src/AudioCarousel/I18n/Strings.cs`** (10-language table: en, ja, zh-Hans, zh-Hant, es, fr, de, pt-BR, ru, ko). Use the `M(...)` helper to supply all 10 values in order, or `Same("X")` for proper nouns / language self-names. Never hardcode UI text in WinForms code; missing per-language entries fall back to English.
+- **`.editorconfig` enforces CRLF line endings** for all source files. On Linux/macOS, set `git config core.autocrlf input` and run `dotnet format` after checkout if CI complains about EOL.
 - **WFO1000 warnings**: properties on custom WinForms controls that return non-trivial types need `[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]` (e.g., `HotkeyTextBox.Value`).
 - **Atomic config writes**: `ConfigStore.SaveInternal` writes to `<path>.tmp` then `File.Replace` with a 5-attempt retry (antivirus / search-indexer can transiently lock the file). Do not "simplify" this back to a direct write.
 - **Tests that touch the real registry** (`StartupRegistrationTests`) use a unique value name (`AudioCarousel-TEST-<guid>`) and clean up in `Dispose`. Follow this pattern for any new registry-touching tests.
@@ -46,4 +48,4 @@ pwsh ./scripts/publish.ps1   # produces publish/AudioCarousel.exe (~108 MB)
 - **Commit messages**: Japanese (per global preference). Code identifiers, comments, and file/symbol names stay English.
 - **`git push` is gated by explicit user request.** This is a private repo; do not push automatically after a commit. Wait for the user to ask.
 - **Publish smoke test**: after running `publish.ps1`, the exe lives in `publish/`. If the previous instance is still running, `Remove-Item publish/` fails. Always `taskkill.exe //F //IM AudioCarousel.exe` first. Smoke tests also write a `publish/audio-carousel.json` that should be cleaned up before commit/release.
-- **Releases**: tag `v*.*.*` and push the tag. `.github/workflows/release.yml` builds and attaches `AudioCarousel.exe` automatically.
+- **Releases**: tag `v*.*.*` and push the tag. `.github/workflows/release.yml` strips the `v` prefix and passes the version as `./scripts/publish.ps1 -Version <ver>`, which forwards `-p:Version=<ver>` to `dotnet publish` to override the `1.0.0-dev` placeholder in csproj. The exe is attached to the GitHub Release automatically.

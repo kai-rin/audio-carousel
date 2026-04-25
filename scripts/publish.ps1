@@ -8,11 +8,18 @@
 #
 # Output: publish/AudioCarousel.exe
 
+param(
+    [string]$Version
+)
+
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $PublishDir  = Join-Path $ProjectRoot 'publish'
 
 if (Test-Path $PublishDir) { Remove-Item -Recurse -Force $PublishDir }
+
+$extra = @()
+if ($Version) { $extra += "-p:Version=$Version" }
 
 dotnet publish (Join-Path $ProjectRoot 'src\AudioCarousel\AudioCarousel.csproj') `
   -c Release `
@@ -22,6 +29,7 @@ dotnet publish (Join-Path $ProjectRoot 'src\AudioCarousel\AudioCarousel.csproj')
   -p:PublishSingleFile=true `
   -p:SelfContained=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `
+  @extra `
   -o $PublishDir
 
 Write-Host ""
