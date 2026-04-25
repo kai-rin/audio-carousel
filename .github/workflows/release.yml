@@ -1,0 +1,35 @@
+name: Release
+
+# Builds the publish artifact and attaches it to a GitHub Release
+# whenever a tag matching v*.*.* is pushed.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: ./scripts/publish.ps1
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          files: publish/AudioCarousel.exe
+          generate_release_notes: true
