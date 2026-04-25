@@ -85,4 +85,6 @@ security issues.
 
 ## License
 
-[MIT](LICENSE) — © 2026 kai-rin
+[MIT](LICENSE) — © 2026 kai-rin.
+Bundled third-party components and their licenses are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
