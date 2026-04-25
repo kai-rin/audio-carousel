@@ -25,6 +25,9 @@ jobs:
       - name: Restore (locked)
         run: dotnet restore --locked-mode
 
+      - name: Format check
+        run: dotnet format --verify-no-changes --no-restore
+
       - name: Build
         run: dotnet build --no-restore -c Release
 

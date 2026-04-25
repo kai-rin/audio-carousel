@@ -55,8 +55,8 @@ public sealed class HotkeyTextBox : TextBox
 
         var mods = HotkeyModifier.None;
         if ((keyData & Keys.Control) != 0) mods |= HotkeyModifier.Control;
-        if ((keyData & Keys.Alt)     != 0) mods |= HotkeyModifier.Alt;
-        if ((keyData & Keys.Shift)   != 0) mods |= HotkeyModifier.Shift;
+        if ((keyData & Keys.Alt) != 0) mods |= HotkeyModifier.Alt;
+        if ((keyData & Keys.Shift) != 0) mods |= HotkeyModifier.Shift;
         // Win key isn't reported via keyData — handled by raw WM if needed; skip for v1.
 
         _spec = new HotkeySpec(mods, key);

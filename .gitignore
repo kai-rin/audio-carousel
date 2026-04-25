@@ -26,3 +26,6 @@ desktop.ini
 .env
 .env.*
 !.env.example
+
+# Personal Claude Code instructions
+CLAUDE.local.md

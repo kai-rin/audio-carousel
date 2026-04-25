@@ -26,19 +26,19 @@ public sealed class TrayIcon : IDisposable
     public TrayIcon()
     {
         _menu = new ContextMenuStrip();
-        _titleItem    = new ToolStripMenuItem { Enabled = false };
-        _currentItem  = new ToolStripMenuItem { Enabled = false };
-        _cycleItem    = new ToolStripMenuItem();
+        _titleItem = new ToolStripMenuItem { Enabled = false };
+        _currentItem = new ToolStripMenuItem { Enabled = false };
+        _cycleItem = new ToolStripMenuItem();
         _settingsItem = new ToolStripMenuItem();
-        _startupItem  = new ToolStripMenuItem { CheckOnClick = true };
-        _aboutItem    = new ToolStripMenuItem();
-        _exitItem     = new ToolStripMenuItem();
+        _startupItem = new ToolStripMenuItem { CheckOnClick = true };
+        _aboutItem = new ToolStripMenuItem();
+        _exitItem = new ToolStripMenuItem();
 
-        _cycleItem.Click    += (_, _) => CycleRequested?.Invoke();
+        _cycleItem.Click += (_, _) => CycleRequested?.Invoke();
         _settingsItem.Click += (_, _) => SettingsRequested?.Invoke();
-        _startupItem.Click  += (_, _) => StartupToggled?.Invoke(_startupItem.Checked);
-        _aboutItem.Click    += (_, _) => AboutRequested?.Invoke();
-        _exitItem.Click     += (_, _) => ExitRequested?.Invoke();
+        _startupItem.Click += (_, _) => StartupToggled?.Invoke(_startupItem.Checked);
+        _aboutItem.Click += (_, _) => AboutRequested?.Invoke();
+        _exitItem.Click += (_, _) => ExitRequested?.Invoke();
 
         _menu.Items.AddRange(new ToolStripItem[]
         {
@@ -82,12 +82,12 @@ public sealed class TrayIcon : IDisposable
 
     public void ApplyLabels()
     {
-        _titleItem.Text    = Strings.Get("tray.title");
-        _cycleItem.Text    = Strings.Get("tray.cycleNext");
+        _titleItem.Text = Strings.Get("tray.title");
+        _cycleItem.Text = Strings.Get("tray.cycleNext");
         _settingsItem.Text = Strings.Get("tray.settings");
-        _startupItem.Text  = Strings.Get("tray.startWithWindows");
-        _aboutItem.Text    = Strings.Get("tray.about");
-        _exitItem.Text     = Strings.Get("tray.exit");
+        _startupItem.Text = Strings.Get("tray.startWithWindows");
+        _aboutItem.Text = Strings.Get("tray.about");
+        _exitItem.Text = Strings.Get("tray.exit");
     }
 
     private static Icon? LoadEmbeddedIcon()

@@ -54,8 +54,13 @@ public sealed class SettingsForm : Form
         var devicesLabel = new Label { Text = Strings.Get("settings.cycleDevices"), Left = 20, Top = 95, AutoSize = true };
         _devicesList = new ListView
         {
-            Left = 20, Top = 122, Width = 640, Height = 244,
-            View = View.Details, FullRowSelect = true, HideSelection = false,
+            Left = 20,
+            Top = 122,
+            Width = 640,
+            Height = 244,
+            View = View.Details,
+            FullRowSelect = true,
+            HideSelection = false,
             HeaderStyle = ColumnHeaderStyle.None,
             OwnerDraw = true,
         };
@@ -64,15 +69,17 @@ public sealed class SettingsForm : Form
         _devicesList.DrawSubItem += DrawDeviceItem;
         _devicesList.DrawItem += (_, e) => { /* handled per-subitem */ };
 
-        _addBtn    = new Button { Text = Strings.Get("settings.addDevice") + " ▾", Left = 20,  Top = 376, Width = 170, Height = 32 };
-        _removeBtn = new Button { Text = Strings.Get("settings.remove"),           Left = 196, Top = 376, Width = 110, Height = 32 };
-        _upBtn     = new Button { Text = Strings.Get("settings.moveUp"),           Left = 312, Top = 376, Width = 70,  Height = 32 };
-        _downBtn   = new Button { Text = Strings.Get("settings.moveDown"),         Left = 388, Top = 376, Width = 70,  Height = 32 };
+        _addBtn = new Button { Text = Strings.Get("settings.addDevice") + " ▾", Left = 20, Top = 376, Width = 170, Height = 32 };
+        _removeBtn = new Button { Text = Strings.Get("settings.remove"), Left = 196, Top = 376, Width = 110, Height = 32 };
+        _upBtn = new Button { Text = Strings.Get("settings.moveUp"), Left = 312, Top = 376, Width = 70, Height = 32 };
+        _downBtn = new Button { Text = Strings.Get("settings.moveDown"), Left = 388, Top = 376, Width = 70, Height = 32 };
 
         var langLabel = new Label { Text = Strings.Get("settings.language"), Left = 20, Top = 437, AutoSize = true };
         _languageCombo = new ComboBox
         {
-            Left = 130, Top = 432, Width = 200,
+            Left = 130,
+            Top = 432,
+            Width = 200,
             DropDownStyle = ComboBoxStyle.DropDownList,
         };
         _languageCombo.Items.AddRange(new object[]
@@ -85,10 +92,12 @@ public sealed class SettingsForm : Form
         _startupCheck = new CheckBox
         {
             Text = Strings.Get("settings.startWithWindows"),
-            Left = 350, Top = 436, AutoSize = true,
+            Left = 350,
+            Top = 436,
+            AutoSize = true,
         };
 
-        _okBtn     = new Button { Text = Strings.Get("settings.ok"),     Left = 430, Top = 500, Width = 110, Height = 36, DialogResult = DialogResult.None };
+        _okBtn = new Button { Text = Strings.Get("settings.ok"), Left = 430, Top = 500, Width = 110, Height = 36, DialogResult = DialogResult.None };
         _cancelBtn = new Button { Text = Strings.Get("settings.cancel"), Left = 550, Top = 500, Width = 110, Height = 36, DialogResult = DialogResult.Cancel };
         AcceptButton = _okBtn;
         CancelButton = _cancelBtn;

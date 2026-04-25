@@ -44,8 +44,8 @@ public sealed class AudioDeviceService : IAudioDeviceService
 
     private static Role ToNAudioRole(AudioRole role) => role switch
     {
-        AudioRole.Console        => Role.Console,
-        AudioRole.Multimedia     => Role.Multimedia,
+        AudioRole.Console => Role.Console,
+        AudioRole.Multimedia => Role.Multimedia,
         AudioRole.Communications => Role.Communications,
         _ => Role.Multimedia,
     };

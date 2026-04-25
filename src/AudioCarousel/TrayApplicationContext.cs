@@ -85,11 +85,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
     private void WireTrayEvents()
     {
-        _tray.CycleRequested    += () => _cycle.Cycle();
+        _tray.CycleRequested += () => _cycle.Cycle();
         _tray.SettingsRequested += () => OpenSettings(firstRun: false);
-        _tray.AboutRequested    += ShowAbout;
-        _tray.ExitRequested     += ExitApp;
-        _tray.StartupToggled    += OnStartupToggled;
+        _tray.AboutRequested += ShowAbout;
+        _tray.ExitRequested += ExitApp;
+        _tray.StartupToggled += OnStartupToggled;
     }
 
     private void OpenSettings(bool firstRun)
