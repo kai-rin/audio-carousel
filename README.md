@@ -15,10 +15,10 @@ installer, single executable, portable configuration.
    put it in any folder.
 2. Double-click to launch.
 
-   > **First-run note:** because the binary is unsigned, Windows SmartScreen
-   > may show "Windows protected your PC". Click **More info** → **Run
-   > anyway**. Alternatively, right-click the .exe → Properties → check
-   > **Unblock** → OK before launching.
+   > First-run note: because the binary is unsigned, Windows SmartScreen
+   > may show "Windows protected your PC". Click More info → Run
+   > anyway. Alternatively, right-click the .exe → Properties → check
+   > Unblock → OK before launching.
 
 3. The tray icon appears and the Settings window opens automatically on
    first run.
@@ -31,7 +31,7 @@ installer, single executable, portable configuration.
 Configuration lives in `audio-carousel.json` next to the executable. The
 only registry write is `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 when "Start with Windows" is on, and only the current user is affected.
-**No admin rights are required.**
+No admin rights are required.
 
 ## Build
 
@@ -50,10 +50,10 @@ pwsh ./scripts/publish.ps1
 
 Output: `publish/AudioCarousel.exe`.
 
-> **Binary size note:** Windows Forms is incompatible with NativeAOT
+> Binary size note: Windows Forms is incompatible with NativeAOT
 > (`NETSDK1175`), and trimming strips runtime COM interop machinery that
 > `NAudio.CoreAudioApi` depends on. The script therefore uses
-> **untrimmed self-contained JIT single-file publish**, producing a
+> untrimmed self-contained JIT single-file publish, producing a
 > ~108 MB executable. The size is the price of "drop the .exe anywhere
 > and run, no .NET runtime needed."
 
@@ -65,18 +65,18 @@ Output: `publish/AudioCarousel.exe`.
 
 ## Disclaimer
 
-Audio Carousel calls `IPolicyConfig`, an **undocumented Windows COM
-interface**, to switch the default audio endpoint. This is the same
+Audio Carousel calls `IPolicyConfig`, an undocumented Windows COM
+interface, to switch the default audio endpoint. This is the same
 technique used by many similar tools (SoundSwitch, EarTrumpet, NirCmd, ...)
 and has been stable from Windows Vista through Windows 11. However, since
 the API is unofficial, Microsoft could change or remove it in a future
 Windows update without notice. If a future Windows update breaks Audio
 Carousel, please open an issue.
 
-The released binary is not code-signed (signing certificates cost real
-money for a free tool). Windows SmartScreen will warn on first launch
-until the binary's reputation builds up — see the *First-run note* under
-*Usage*.
+The released binary is not code-signed (code-signing certificates carry
+an ongoing cost, and we've held off on adopting one while the project
+remains free). Windows SmartScreen will warn on first launch until the
+binary's reputation builds up — see the *First-run note* under *Usage*.
 
 ## Security
 
