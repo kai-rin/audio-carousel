@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+publish/
+TestResults/
+
+# Visual Studio / Rider / VS Code
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backups & secrets
+*.bak
+.env
+.env.*
+!.env.example
+
+# Personal Claude Code instructions
+CLAUDE.local.md
+.claude/

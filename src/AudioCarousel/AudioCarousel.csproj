@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AudioCarousel</RootNamespace>
+    <AssemblyName>AudioCarousel</AssemblyName>
+    <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
+
+    <!-- Default version for local/dev builds. CI overrides via -p:Version=<tag> from release.yml. -->
+    <Version>1.0.0-dev</Version>
+
+    <!-- AOT settings (apply at publish only; dev build stays JIT) -->
+    <PublishAot Condition="'$(IsPublishing)' == 'true'">true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <RuntimeIdentifier Condition="'$(IsPublishing)' == 'true'">win-x64</RuntimeIdentifier>
+
+    <!-- Reproducible NuGet restores via packages.lock.json -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\tray.ico" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,50 @@
+root = true
+
+# Defaults for everything
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# C#
+[*.cs]
+indent_size = 4
+
+# Implicit/explicit using preferences
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = when_multiline:silent
+
+# var preferences — match what the existing codebase uses
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_var_elsewhere = false:silent
+
+# Modern C# constructs we already use
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_throw_expression = true:silent
+csharp_style_conditional_delegate_call = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_properties = when_on_single_line:silent
+
+# Nullable reference types
+dotnet_diagnostic.CS8600.severity = warning
+dotnet_diagnostic.CS8601.severity = warning
+dotnet_diagnostic.CS8602.severity = warning
+dotnet_diagnostic.CS8603.severity = warning
+
+# Project-specific suppressions
+# WFO1000 is already handled per-property with [DesignerSerializationVisibility]
+# in the spots that need it; leave the warning enabled to catch new offenders.
+
+[{*.csproj,*.props,*.targets,packages.lock.json}]
+indent_size = 2
