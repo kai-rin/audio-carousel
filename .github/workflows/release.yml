@@ -29,9 +29,11 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}" -replace '^v', ''
           ./scripts/publish.ps1 -Version $version
+          Compress-Archive -Path publish/AudioCarousel.exe `
+                           -DestinationPath publish/AudioCarousel-$version-win-x64.zip
 
       - name: Upload to release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
-          files: publish/AudioCarousel.exe
+          files: publish/AudioCarousel-*-win-x64.zip
           generate_release_notes: true
