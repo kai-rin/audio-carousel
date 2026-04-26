@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey. Single-developer, MIT-licensed. GitHub repo is currently private; intended for public OSS release later.
+Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey. Single-developer, MIT-licensed.
 
 Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 
@@ -48,6 +48,8 @@ powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo
 
 - **All user-facing strings go through `src/AudioCarousel/I18n/Strings.cs`** (10-language table: en, ja, zh-Hans, zh-Hant, es, fr, de, pt-BR, ru, ko). Use the `M(...)` helper to supply all 10 values in order, or `Same("X")` for proper nouns / language self-names. Never hardcode UI text in WinForms code; missing per-language entries fall back to English.
 - **`.editorconfig` enforces CRLF line endings** for all source files. On Linux/macOS, set `git config core.autocrlf input` and run `dotnet format` after checkout if CI complains about EOL.
+- **`packages.lock.json` must be regenerated outside publish mode.** Running `dotnet restore` while `IsPublishing=true` (or `dotnet publish` followed by a commit of the lock) pollutes the lock file with `Microsoft.NET.ILLink.Tasks` and a `win-x64` RID entry, which fails CI's `--locked-mode` with NU1004. Recover with `dotnet restore --force-evaluate` from the repo root.
+- **Phantom `git status` modifications**: `core.autocrlf=true` with no `.gitattributes` can show `.cs` files as modified while `git diff` is empty (index LF vs working CRLF). `git add <file>` normalizes them away — no commit needed.
 - **WFO1000 warnings**: properties on custom WinForms controls that return non-trivial types need `[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]` (e.g., `HotkeyTextBox.Value`).
 - **Atomic config writes**: `ConfigStore.SaveInternal` writes to `<path>.tmp` then `File.Replace` with a 5-attempt retry (antivirus / search-indexer can transiently lock the file). Do not "simplify" this back to a direct write.
 - **Tests that touch the real registry** (`StartupRegistrationTests`) use a unique value name (`AudioCarousel-TEST-<guid>`) and clean up in `Dispose`. Follow this pattern for any new registry-touching tests.
@@ -59,7 +61,7 @@ powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo
 
 - **Branch**: `main` only (no feature branches for this project).
 - **README is multilingual**: `README.md` (en), `README.ja.md`, `README.zh-Hans.md`. The language-switcher line `[English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)` is identical in all three. When updating user-facing content, update all three or note the others as out-of-date.
-- **Commit messages**: Japanese (per global preference). Code identifiers, comments, and file/symbol names stay English.
-- **`git push` is gated by explicit user request.** This is a private repo; do not push automatically after a commit. Wait for the user to ask.
+- **Commit messages**: this project uses Japanese for commit messages. Code identifiers, comments, and file/symbol names stay English.
+- **`git push` is gated by explicit user request.** Never push automatically after a commit; wait for the maintainer to ask.
 - **Publish smoke test**: after running `publish.ps1`, the exe lives in `publish/`. If the previous instance is still running, `Remove-Item publish/` fails. Always `taskkill.exe //F //IM AudioCarousel.exe` first. Smoke tests also write a `publish/audio-carousel.json` that should be cleaned up before commit/release.
-- **Releases**: tag `v*.*.*` and push the tag. `.github/workflows/release.yml` strips the `v` prefix and passes the version as `./scripts/publish.ps1 -Version <ver>`, which forwards `-p:Version=<ver>` to `dotnet publish` to override the `1.0.0-dev` placeholder in csproj. The exe is attached to the GitHub Release automatically.
+- **Releases**: tag `v*.*.*` and push the tag. `.github/workflows/release.yml` strips the `v` prefix and passes the version as `./scripts/publish.ps1 -Version <ver>`, which forwards `-p:Version=<ver>` to `dotnet publish` to override the `1.0.0-dev` placeholder in csproj. The build is then `Compress-Archive`d into `AudioCarousel-<ver>-win-x64.zip` (~43 MB, ~60% smaller than the raw exe) and attached to the GitHub Release automatically.
