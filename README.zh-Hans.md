@@ -2,6 +2,8 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)
 
+![Audio Carousel](docs/images/hero-zh-Hans.png)
+
 一款轻量级 Windows 任务栏工具，通过单个全局热键在你指定的设备列表中循环切换系统默认音频输出设备。
 
 灵感来自 [PeekDesktop](https://github.com/shanselman/PeekDesktop)：无需安装程序、单一可执行文件、便携式配置。

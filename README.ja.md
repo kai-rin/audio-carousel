@@ -2,6 +2,8 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)
 
+![Audio Carousel](docs/images/hero-ja.png)
+
 設定したデバイスリストをグローバルホットキー1つで巡回し、システムの既定の音声出力デバイスを切り替える、軽量な Windows タスクトレイユーティリティです。
 
 [PeekDesktop](https://github.com/shanselman/PeekDesktop) からインスパイアされた設計：インストーラ不要・単一実行ファイル・設定はポータブル。

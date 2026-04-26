@@ -2,6 +2,8 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md)
 
+![Audio Carousel](docs/images/hero-en.png)
+
 A lightweight Windows tray utility that switches the system default audio
 output device through a list you choose, with a single global hotkey.
 
