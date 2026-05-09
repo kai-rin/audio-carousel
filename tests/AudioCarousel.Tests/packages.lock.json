@@ -53,15 +53,15 @@
       },
       "NAudio.Core": {
         "type": "Transitive",
-        "resolved": "2.2.1",
-        "contentHash": "GgkdP6K/7FqXFo7uHvoqGZTJvW4z8g2IffhOO4JHaLzKCdDOUEzVKtveoZkCuUX8eV2HAINqi7VFqlFndrnz/g=="
+        "resolved": "2.3.0",
+        "contentHash": "jMd7r6dB6tAtXhOYL58ntPqwERNm1/Rhw5MKOIYvsnXzuX+PTGsa2VMam6n0npZYSwlSidKa4GAm4bFcXFUlcg=="
       },
       "NAudio.Wasapi": {
         "type": "Transitive",
-        "resolved": "2.2.1",
-        "contentHash": "lFfXoqacZZe0WqNChJgGYI+XV/n/61LzPHT3C1CJp4khoxeo2sziyX5wzNYWeCMNbsWxFvT3b3iXeY1UYjBhZw==",
+        "resolved": "2.3.0",
+        "contentHash": "y5K2BxrLnvohgu5znzg5wRsai3YcuNXfrpo68i7PmCQqpK5MC/R24e5aO3OyN/XhfRr12e0QYV0OnUWEHi5SzA==",
         "dependencies": {
-          "NAudio.Core": "2.2.1"
+          "NAudio.Core": "2.3.0"
         }
       },
       "Newtonsoft.Json": {
@@ -125,7 +125,7 @@
       "audiocarousel": {
         "type": "Project",
         "dependencies": {
-          "NAudio.Wasapi": "[2.2.1, )"
+          "NAudio.Wasapi": "[2.3.0, )"
         }
       }
     }
