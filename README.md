@@ -17,11 +17,13 @@ installer, single executable, portable configuration.
 - **One hotkey, one switch.** Press your hotkey from any app — game,
   meeting, browser — and the system default audio output jumps to the
   next device on your list. No need to open the Sound settings panel.
-- **Pick exactly which devices to cycle.** A typical Windows PC exposes
-  many outputs — HDMI on each monitor, every Bluetooth headset ever
-  paired, virtual audio cables, and so on. Audio Carousel only rotates
-  through the ones you selected, so the cycle stays short and
-  predictable.
+- **Pick exactly which devices to cycle.** A typical Windows PC —
+  desktop or laptop — exposes many outputs: the motherboard or chassis
+  analog jacks (speakers, headphone-out, line-out), monitor audio
+  routed over DisplayPort or HDMI, USB DACs and headset dongles, every
+  Bluetooth headset ever paired, virtual audio cables, and so on.
+  Audio Carousel only rotates through the ones you selected, so the
+  cycle stays short and predictable.
 - **Visual confirmation.** A toast appears at the bottom-right of the
   active monitor showing the new device's name. The tray icon's tooltip
   also reflects the current device.
@@ -35,9 +37,11 @@ installer, single executable, portable configuration.
   Français, Deutsch, Português (Brasil), Русский, 한국어. Auto-detects
   from your Windows display language; switch manually any time in
   Settings.
-- **Portable.** Settings live in `audio-carousel.json` next to the .exe.
-  Move the folder (USB stick, OneDrive, another PC) and your hotkey,
-  device list, and language come along.
+- **Plain-text JSON config.** Settings live in `audio-carousel.json`
+  next to the .exe. Open it in any text editor to see exactly what's
+  saved, change a hotkey or device name without launching the UI,
+  version-control it with git, or generate it from a script. The
+  Settings window just edits the same file.
 - **Optional auto-start.** "Start with Windows" writes only to the
   current user's `HKCU\...\Run` key — no admin rights, no service, no
   scheduled task.
@@ -152,7 +156,7 @@ security issues.
 
 ## License
 
-[MIT](LICENSE) — © 2026 kai-rin.
+[MIT](LICENSE) — © 2026 Kairin.
 Bundled third-party components and their licenses are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
