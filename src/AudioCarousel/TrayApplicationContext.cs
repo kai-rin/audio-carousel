@@ -191,6 +191,12 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         }
         string? currentId = _audio.GetDefaultOutputId(AudioRole.Multimedia);
         var match = _config.Devices.FirstOrDefault(d => d.EndpointId == currentId);
+        if (match is null && currentId is not null
+            && DeviceMatcher.HealEndpointIds(_config.Devices, _audio.EnumerateActiveOutputs()))
+        {
+            PersistCurrentIndex();
+            match = _config.Devices.FirstOrDefault(d => d.EndpointId == currentId);
+        }
         _tray.SetCurrentDeviceLabel(match?.DisplayName ?? null);
     }
 

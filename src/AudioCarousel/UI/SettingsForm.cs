@@ -137,7 +137,9 @@ public sealed class SettingsForm : Form
     private void RefreshDevicesList()
     {
         _devicesList.Items.Clear();
-        var available = _audio.EnumerateActiveOutputs()
+        var live = _audio.EnumerateActiveOutputs();
+        DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
+        var available = live
             .ToDictionary(d => d.EndpointId, d => d.DisplayName, StringComparer.Ordinal);
         string? currentDefault = _audio.GetDefaultOutputId(AudioRole.Multimedia);
 
@@ -177,8 +179,11 @@ public sealed class SettingsForm : Form
 
     private void OnAddClicked(object? sender, EventArgs e)
     {
+        var live = _audio.EnumerateActiveOutputs();
+        // Heal so a churned-ID device counts as registered instead of a duplicate candidate.
+        DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
         var registered = new HashSet<string>(_workingCopy.Devices.Select(d => d.EndpointId), StringComparer.Ordinal);
-        var candidates = _audio.EnumerateActiveOutputs()
+        var candidates = live
             .Where(d => !registered.Contains(d.EndpointId))
             .ToList();
 

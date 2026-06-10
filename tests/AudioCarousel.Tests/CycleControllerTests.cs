@@ -119,6 +119,77 @@ public class CycleControllerTests
     }
 
     [Fact]
+    public void Cycle_StaleId_HealsByNameAndSwitches()
+    {
+        // Persisted ID went stale (NVIDIA HDA churn); a live device has the same name.
+        var (c, a, s, cfg, saves) = Build(("stale-lg", "LG", false));
+        a.ActiveOutputs.Add(new AudioDevice("live-lg", "LG"));
+
+        c.Cycle();
+
+        Assert.Equal("live-lg", cfg.Devices[0].EndpointId);
+        Assert.Equal(3, a.SetCalls.Count);
+        Assert.All(a.SetCalls, call => Assert.Equal("live-lg", call.id));
+        Assert.Equal("LG", s.Toasts[^1]);
+        Assert.Equal(1, saves.Count);
+    }
+
+    [Fact]
+    public void Cycle_HealedEntrySyncsCurrentIndexBeforeAdvancing()
+    {
+        // OS default is the healed entry's NEW id — sync must see it after healing,
+        // so the cycle advances to the other device instead of re-selecting LG.
+        var (c, a, s, cfg, _) = Build(("b", "B", true), ("stale-lg", "LG", false));
+        a.ActiveOutputs.Add(new AudioDevice("live-lg", "LG"));
+        a.Defaults[AudioRole.Multimedia] = "live-lg";
+        cfg.CurrentIndex = 0;
+
+        c.Cycle();
+
+        Assert.Equal(0, cfg.CurrentIndex);
+        Assert.Equal("B", s.Toasts[^1]);
+    }
+
+    [Fact]
+    public void Cycle_StaleId_NoNameMatch_SkippedAsBefore()
+    {
+        var (c, _, s, cfg, _) = Build(("stale-lg", "LG", false), ("b", "B", true));
+        cfg.CurrentIndex = 1;
+
+        c.Cycle();
+
+        Assert.Equal("stale-lg", cfg.Devices[0].EndpointId);
+        Assert.Equal(1, cfg.CurrentIndex);
+        Assert.Equal("B", s.Toasts[^1]);
+    }
+
+    [Fact]
+    public void Cycle_AllStale_NoNameMatch_ErrorToastAndNoSave()
+    {
+        var (c, a, s, _, saves) = Build(("stale-lg", "LG", false));
+
+        c.Cycle();
+
+        Assert.Empty(a.SetCalls);
+        Assert.Single(s.ErrorToasts);
+        Assert.Equal(0, saves.Count);
+    }
+
+    [Fact]
+    public void Cycle_HealPersistsEvenWhenSetDefaultFails()
+    {
+        var (c, a, s, cfg, saves) = Build(("stale-lg", "LG", false));
+        a.ActiveOutputs.Add(new AudioDevice("live-lg", "LG"));
+        a.SetDefaultException = (_, _) => new InvalidOperationException("boom");
+
+        c.Cycle();
+
+        Assert.Single(s.ErrorToasts);
+        Assert.Equal("live-lg", cfg.Devices[0].EndpointId);
+        Assert.Equal(1, saves.Count); // healed ID must survive even on switch failure
+    }
+
+    [Fact]
     public void Cycle_SetDefaultThrows_DoesNotAdvanceIndex()
     {
         var (c, a, s, cfg, _) = Build(("a", "A", true), ("b", "B", true));

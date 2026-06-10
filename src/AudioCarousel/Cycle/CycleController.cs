@@ -12,26 +12,30 @@ public sealed class CycleController
     private readonly ConfigSchema _config;
     private readonly IAudioDeviceService _audio;
     private readonly ICycleSink _sink;
-    private readonly Action _persistCurrentIndex;
+    private readonly Action _persistConfig;
 
     public CycleController(
         ConfigSchema config,
         IAudioDeviceService audio,
         ICycleSink sink,
-        Action persistCurrentIndex)
+        Action persistConfig)
     {
         _config = config;
         _audio = audio;
         _sink = sink;
-        _persistCurrentIndex = persistCurrentIndex;
+        _persistConfig = persistConfig;
     }
 
     public void Cycle()
     {
         if (_config.Devices.Count == 0) return;
 
+        var live = _audio.EnumerateActiveOutputs();
+        // Heal before building the available set and before the sync below, so a
+        // re-bound entry (endpoint-ID churn) is both selectable and syncable.
+        bool healed = DeviceMatcher.HealEndpointIds(_config.Devices, live);
         var available = new HashSet<string>(
-            _audio.EnumerateActiveOutputs().Select(d => d.EndpointId),
+            live.Select(d => d.EndpointId),
             StringComparer.Ordinal);
 
         // Sync currentIndex with OS reality before advancing.
@@ -57,6 +61,7 @@ public sealed class CycleController
 
         if (targetIndex < 0)
         {
+            if (healed) _persistConfig();
             _sink.ShowErrorToast(Strings.Get("error.noDeviceAvailable"));
             return;
         }
@@ -70,12 +75,14 @@ public sealed class CycleController
         }
         catch (Exception)
         {
+            // The heal is a config repair independent of the switch outcome.
+            if (healed) _persistConfig();
             _sink.ShowErrorToast(Strings.Get("error.switchFailed"));
             return;
         }
 
         _config.CurrentIndex = targetIndex;
-        _persistCurrentIndex();
+        _persistConfig();
         _sink.ShowToast(target.DisplayName);
         _sink.NotifyCurrentDeviceChanged();
     }

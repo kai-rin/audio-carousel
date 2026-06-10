@@ -134,6 +134,16 @@ A Windows tray utility that cycles the system default audio output device throug
 | `currentIndex` | Last-active position in the cycle. Persisted on each switch (fire-and-forget). Clamped to valid range on load. |
 | `startWithWindows` | Reflects HKCU Run-key state. |
 
+> **Correction (2026-06-10):** the "persistent across reboots and re-plug" assumption on
+> `endpointId` is **false** for NVIDIA HDA DisplayPort/HDMI endpoints — the driver mints a
+> new endpoint GUID across reboots / display re-enumeration (verified via
+> `HKLM\...\MMDevices\Audio\Render`: 5 NOTPRESENT + 1 Active endpoint for the same monitor,
+> all sharing one HDAUDIO instance path, so no per-monitor hardware key exists either).
+> USB/Bluetooth endpoint IDs are stable. `endpointId` is therefore treated as a cache: when
+> it matches no active device, the app falls back to `displayName` matching and self-heals
+> the stored ID (`DeviceMatcher.HealEndpointIds`, called from `CycleController`,
+> `SettingsForm`, and the tray current-device label refresh).
+
 ### Save timing
 
 - `SettingsWindow` "OK" → full save.
