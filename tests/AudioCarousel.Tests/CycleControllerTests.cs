@@ -207,8 +207,7 @@ internal sealed class FakeCycleSink : ICycleSink
 {
     public List<string> Toasts { get; } = new();
     public List<string> ErrorToasts { get; } = new();
-    public int CurrentDeviceChangedNotifications { get; private set; }
     public void ShowToast(string text) => Toasts.Add(text);
     public void ShowErrorToast(string text) => ErrorToasts.Add(text);
-    public void NotifyCurrentDeviceChanged() => CurrentDeviceChangedNotifications++;
+    public void NotifyCurrentDeviceChanged() { }
 }

@@ -12,7 +12,6 @@ public sealed class SettingsForm : Form
 {
     private readonly IAudioDeviceService _audio;
     private readonly ConfigSchema _workingCopy;
-    private readonly bool _isFirstRun;
 
     private readonly HotkeyTextBox _hotkeyBox;
     private readonly Button _hotkeyClearBtn;
@@ -36,7 +35,6 @@ public sealed class SettingsForm : Form
     {
         _audio = audio;
         _workingCopy = Clone(current);
-        _isFirstRun = isFirstRun;
 
         Text = Strings.Get(isFirstRun ? "settings.titleFirstRun" : "settings.title");
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -65,9 +63,7 @@ public sealed class SettingsForm : Form
             OwnerDraw = true,
         };
         _devicesList.Columns.Add("Device", 640 - 4);
-        _devicesList.DrawColumnHeader += (_, e) => e.DrawDefault = true;
         _devicesList.DrawSubItem += DrawDeviceItem;
-        _devicesList.DrawItem += (_, e) => { /* handled per-subitem */ };
 
         _addBtn = new Button { Text = Strings.Get("settings.addDevice") + " ▾", Left = 20, Top = 376, Width = 170, Height = 32 };
         _removeBtn = new Button { Text = Strings.Get("settings.remove"), Left = 196, Top = 376, Width = 110, Height = 32 };

@@ -262,7 +262,6 @@ public static class Strings
     };
 
     public static void SetLanguage(Language lang) => _current = lang;
-    public static Language Current => _current;
 
     public static string Get(string key)
     {

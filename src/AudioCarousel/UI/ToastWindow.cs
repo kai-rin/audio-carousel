@@ -18,7 +18,6 @@ public sealed class ToastWindow : Form
     private readonly System.Windows.Forms.Timer _fadeTimer;
     private string _text = "";
     private FadeState _state = FadeState.Hidden;
-    private bool _isError;
 
     private enum FadeState { Hidden, FadingIn, Holding, FadingOut }
 
@@ -56,7 +55,6 @@ public sealed class ToastWindow : Form
     public void ShowMessage(string text, bool isError = false)
     {
         _text = text;
-        _isError = isError;
         BackColor = isError ? Color.FromArgb(120, 28, 28) : Color.FromArgb(28, 28, 30);
         AdjustSize();
         PositionOnActiveMonitor();

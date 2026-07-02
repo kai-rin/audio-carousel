@@ -197,7 +197,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             PersistCurrentIndex();
             match = _config.Devices.FirstOrDefault(d => d.EndpointId == currentId);
         }
-        _tray.SetCurrentDeviceLabel(match?.DisplayName ?? null);
+        _tray.SetCurrentDeviceLabel(match?.DisplayName);
     }
 
     private void PersistCurrentIndex()

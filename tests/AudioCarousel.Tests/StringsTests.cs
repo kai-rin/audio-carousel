@@ -66,24 +66,6 @@ public class StringsTests
     }
 
     [Theory]
-    [InlineData("auto")]
-    [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("zh-Hans")]
-    [InlineData("zh-Hant")]
-    [InlineData("es")]
-    [InlineData("fr")]
-    [InlineData("de")]
-    [InlineData("pt-BR")]
-    [InlineData("ru")]
-    [InlineData("ko")]
-    public void ResolveLanguage_AcceptsValidConfigValues(string value)
-    {
-        var lang = Strings.ResolveLanguage(value, currentUiCultureName: "ja-JP");
-        Assert.Contains(lang, Enum.GetValues<Language>());
-    }
-
-    [Theory]
     [InlineData("en", Language.English)]
     [InlineData("ja", Language.Japanese)]
     [InlineData("zh-Hans", Language.ChineseSimplified)]

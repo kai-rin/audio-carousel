@@ -29,23 +29,24 @@ public static class HotkeyParser
 
     public static string Format(HotkeySpec spec)
     {
-        var parts = new List<string>(5);
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Control)) parts.Add("Ctrl");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Alt)) parts.Add("Alt");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Shift)) parts.Add("Shift");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Win)) parts.Add("Win");
+        var parts = ModifierNames(spec.Modifiers);
         parts.Add(spec.Key.ToString());
         return string.Join(" + ", parts);
     }
 
     public static HotkeyEntry ToConfigEntry(HotkeySpec spec)
     {
-        var mods = new List<string>(4);
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Control)) mods.Add("Ctrl");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Alt)) mods.Add("Alt");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Shift)) mods.Add("Shift");
-        if (spec.Modifiers.HasFlag(HotkeyModifier.Win)) mods.Add("Win");
-        return new HotkeyEntry { Modifiers = mods, Key = spec.Key.ToString() };
+        return new HotkeyEntry { Modifiers = ModifierNames(spec.Modifiers), Key = spec.Key.ToString() };
+    }
+
+    private static List<string> ModifierNames(HotkeyModifier mod)
+    {
+        var names = new List<string>(5);
+        if (mod.HasFlag(HotkeyModifier.Control)) names.Add("Ctrl");
+        if (mod.HasFlag(HotkeyModifier.Alt)) names.Add("Alt");
+        if (mod.HasFlag(HotkeyModifier.Shift)) names.Add("Shift");
+        if (mod.HasFlag(HotkeyModifier.Win)) names.Add("Win");
+        return names;
     }
 
     public static HotkeySpec? FromConfigEntry(HotkeyEntry? entry)
