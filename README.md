@@ -28,8 +28,9 @@ installer, single executable, portable configuration.
   active monitor showing the new device's name. The tray icon's tooltip
   also reflects the current device.
 - **Tray-resident, mouse-friendly.** Left-click the tray icon to cycle
-  (same as the hotkey). Right-click for a menu: current device, Cycle
-  next, Settings, About, Exit.
+  (same as the hotkey). Right-click for a menu that lists your devices —
+  click one to switch to it directly, plus Cycle next, Settings, About,
+  Exit.
 - **Flexible hotkeys.** Modifier combinations (`Ctrl+Alt+A`) and the
   rarely-used function keys (`F13`–`F24`, common on programmable
   keyboards and macro pads) all work.
@@ -96,7 +97,8 @@ In the Settings window:
   confirms the switch.
 - **Left-click the tray icon** does the same as pressing the hotkey.
 - **Right-click the tray icon** for the menu:
-  - The current device name (informational, not clickable)
+  - **Your registered devices** — the current one is checked; click any
+    other to switch to it directly (offline devices are grayed out)
   - **Cycle next** — same as hotkey
   - **Settings** — reopen the settings window
   - **Start with Windows** — toggle without opening Settings
