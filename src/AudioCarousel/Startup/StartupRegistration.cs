@@ -16,15 +16,17 @@ public sealed class StartupRegistration
 
     public string? GetRegisteredPath()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
-        return key?.GetValue(_valueName) as string;
+        string? raw = GetRawValue();
+        return raw is null ? null : Unquote(raw);
     }
 
     public void Enable(string exePath)
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true)
                         ?? Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
-        key.SetValue(_valueName, exePath, RegistryValueKind.String);
+        // Quote the path: an unquoted Run value containing spaces is ambiguous
+        // when Windows executes it at logon.
+        key.SetValue(_valueName, $"\"{exePath}\"", RegistryValueKind.String);
     }
 
     public void Disable()
@@ -35,9 +37,22 @@ public sealed class StartupRegistration
 
     public void EnsurePath(string currentExePath)
     {
-        string? registered = GetRegisteredPath();
-        if (registered is null) return; // not enabled — nothing to fix
-        if (!string.Equals(registered, currentExePath, StringComparison.OrdinalIgnoreCase))
+        string? raw = GetRawValue();
+        if (raw is null) return; // not enabled — nothing to fix
+        // Compare against the exact stored form so a legacy unquoted value is
+        // also rewritten into the quoted format.
+        if (!string.Equals(raw, $"\"{currentExePath}\"", StringComparison.OrdinalIgnoreCase))
             Enable(currentExePath);
     }
+
+    private string? GetRawValue()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
+        return key?.GetValue(_valueName) as string;
+    }
+
+    private static string Unquote(string value) =>
+        value.Length >= 2 && value.StartsWith('"') && value.EndsWith('"')
+            ? value[1..^1]
+            : value;
 }

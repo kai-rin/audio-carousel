@@ -59,4 +59,40 @@ public class StartupRegistrationTests : IDisposable
         reg.EnsurePath(@"C:\anything.exe");
         Assert.False(reg.IsEnabled());
     }
+
+    // Run-key values must be quoted: an unquoted path containing spaces
+    // (e.g. "D:\My Tools\AudioCarousel.exe") is ambiguous at startup time.
+    [Fact]
+    public void Enable_WritesQuotedValueToRegistry()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"D:\My Tools\AudioCarousel.exe");
+
+        Assert.Equal("\"D:\\My Tools\\AudioCarousel.exe\"", ReadRawValue());
+        Assert.Equal(@"D:\My Tools\AudioCarousel.exe", reg.GetRegisteredPath());
+    }
+
+    [Fact]
+    public void EnsurePath_UpgradesLegacyUnquotedValue()
+    {
+        WriteRawValue(@"D:\My Tools\AudioCarousel.exe"); // legacy unquoted format
+        var reg = new StartupRegistration(_testValueName);
+        reg.EnsurePath(@"D:\My Tools\AudioCarousel.exe");
+
+        Assert.Equal("\"D:\\My Tools\\AudioCarousel.exe\"", ReadRawValue());
+    }
+
+    private string? ReadRawValue()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(
+            @"Software\Microsoft\Windows\CurrentVersion\Run", writable: false);
+        return key?.GetValue(_testValueName) as string;
+    }
+
+    private void WriteRawValue(string value)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(
+            @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+        key!.SetValue(_testValueName, value, RegistryValueKind.String);
+    }
 }
