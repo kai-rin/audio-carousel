@@ -19,7 +19,7 @@ public sealed class ConfigStore
             if (!File.Exists(_path))
             {
                 var defaults = new ConfigSchema();
-                SaveInternal(defaults);
+                TrySaveInternal(defaults);
                 return (defaults, true, false);
             }
 
@@ -33,11 +33,15 @@ public sealed class ConfigStore
             }
             catch (Exception)
             {
-                string backup = _path + ".bak";
-                if (File.Exists(backup)) File.Delete(backup);
-                File.Move(_path, backup);
+                try
+                {
+                    string backup = _path + ".bak";
+                    if (File.Exists(backup)) File.Delete(backup);
+                    File.Move(_path, backup);
+                }
+                catch { /* best-effort backup; still recover with defaults */ }
                 var defaults = new ConfigSchema();
-                SaveInternal(defaults);
+                TrySaveInternal(defaults);
                 return (defaults, true, true);
             }
         }
@@ -50,6 +54,15 @@ public sealed class ConfigStore
             ClampCurrentIndex(config);
             SaveInternal(config);
         }
+    }
+
+    // Load-time saves are best-effort: an unwritable directory (e.g. the exe
+    // dropped under Program Files without admin rights) must not prevent the
+    // app from starting with an in-memory config. Explicit user saves still go
+    // through Save(), which propagates failures.
+    private void TrySaveInternal(ConfigSchema config)
+    {
+        try { SaveInternal(config); } catch { /* run with in-memory config */ }
     }
 
     private void SaveInternal(ConfigSchema config)

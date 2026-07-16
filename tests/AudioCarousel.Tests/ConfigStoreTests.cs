@@ -86,6 +86,22 @@ public class ConfigStoreTests : IDisposable
         Assert.Empty(config.Devices);
     }
 
+    // Portable-app promise: dropping the exe into an unwritable location must
+    // not crash startup. Load's initial save is best-effort; the app runs with
+    // an in-memory config.
+    [Fact]
+    public void Load_WhenDirectoryUnwritable_StillReturnsDefaultsWithoutThrowing()
+    {
+        string unwritablePath = Path.Combine(_dir, "no-such-subdir", "audio-carousel.json");
+        var store = new ConfigStore(unwritablePath);
+
+        var (config, freshlyCreated, wasCorrupted) = store.Load();
+
+        Assert.True(freshlyCreated);
+        Assert.False(wasCorrupted);
+        Assert.Empty(config.Devices);
+    }
+
     [Fact]
     public void Load_ClampsCurrentIndexToValidRange()
     {
