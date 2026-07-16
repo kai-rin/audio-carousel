@@ -5,12 +5,16 @@ using AudioCarousel.I18n;
 
 namespace AudioCarousel.UI;
 
+/// <summary>One registered device as shown in the tray menu.</summary>
+public sealed record TrayDeviceRow(string EndpointId, string DisplayName, bool IsOnline, bool IsCurrent);
+
 public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _menu;
     private readonly ToolStripMenuItem _titleItem;
     private readonly ToolStripMenuItem _currentItem;
+    private readonly List<ToolStripMenuItem> _deviceItems = new();
     private readonly ToolStripMenuItem _cycleItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _startupItem;
@@ -22,6 +26,8 @@ public sealed class TrayIcon : IDisposable
     public event Action<bool>? StartupToggled;
     public event Action? AboutRequested;
     public event Action? ExitRequested;
+    public event Action<string>? DeviceSelected;
+    public event Action? MenuOpening;
 
     public TrayIcon()
     {
@@ -64,8 +70,44 @@ public sealed class TrayIcon : IDisposable
         {
             if (e.Button == MouseButtons.Left) CycleRequested?.Invoke();
         };
+        _menu.Opening += (_, _) => MenuOpening?.Invoke();
 
         ApplyLabels();
+    }
+
+    /// <summary>
+    /// Rebuilds the per-device menu entries (inserted right after the current-
+    /// device label). Call from the MenuOpening event so the list is fresh.
+    /// </summary>
+    public void SetDevices(IReadOnlyList<TrayDeviceRow> rows)
+    {
+        foreach (var item in _deviceItems)
+        {
+            _menu.Items.Remove(item);
+            item.Dispose();
+        }
+        _deviceItems.Clear();
+
+        // With device rows visible, the checked row already conveys "current";
+        // keep the label row only for the empty state.
+        _currentItem.Visible = rows.Count == 0;
+
+        int insertAt = _menu.Items.IndexOf(_currentItem) + 1;
+        foreach (var row in rows)
+        {
+            string text = row.IsOnline
+                ? row.DisplayName
+                : $"{row.DisplayName} {Strings.Get("settings.offline")}";
+            var item = new ToolStripMenuItem(text)
+            {
+                Checked = row.IsCurrent,
+                Enabled = row.IsOnline,
+            };
+            string endpointId = row.EndpointId;
+            item.Click += (_, _) => DeviceSelected?.Invoke(endpointId);
+            _menu.Items.Insert(insertAt++, item);
+            _deviceItems.Add(item);
+        }
     }
 
     public void SetCurrentDeviceLabel(string? deviceName)

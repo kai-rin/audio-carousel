@@ -89,6 +89,27 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         _tray.AboutRequested += ShowAbout;
         _tray.ExitRequested += ExitApp;
         _tray.StartupToggled += OnStartupToggled;
+        _tray.MenuOpening += RefreshTrayDeviceItems;
+        _tray.DeviceSelected += id => _cycle.SwitchTo(id);
+    }
+
+    private void RefreshTrayDeviceItems()
+    {
+        var live = _audio.EnumerateActiveOutputs();
+        if (DeviceMatcher.HealEndpointIds(_config.Devices, live))
+        {
+            PersistCurrentIndex();
+        }
+        var liveIds = new HashSet<string>(live.Select(d => d.EndpointId), StringComparer.Ordinal);
+        string? currentId = _audio.GetDefaultOutputId(AudioRole.Multimedia);
+        var rows = _config.Devices
+            .Select(d => new TrayDeviceRow(
+                d.EndpointId,
+                d.DisplayName,
+                liveIds.Contains(d.EndpointId),
+                d.EndpointId == currentId))
+            .ToList();
+        _tray.SetDevices(rows);
     }
 
     private void OpenSettings(bool firstRun)

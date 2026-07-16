@@ -190,6 +190,75 @@ public class CycleControllerTests
     }
 
     [Fact]
+    public void SwitchTo_SwitchesToRequestedDevice()
+    {
+        var (c, a, s, cfg, saves) = Build(("a", "A", true), ("b", "B", true), ("c", "C", true));
+        cfg.CurrentIndex = 0;
+
+        c.SwitchTo("c");
+
+        Assert.Equal(2, cfg.CurrentIndex);
+        Assert.Equal(3, a.SetCalls.Count); // 3 roles
+        Assert.All(a.SetCalls, call => Assert.Equal("c", call.id));
+        Assert.Equal("C", s.Toasts[^1]);
+        Assert.Equal(1, saves.Count);
+    }
+
+    [Fact]
+    public void SwitchTo_OfflineDevice_ShowsErrorToast()
+    {
+        var (c, a, s, cfg, _) = Build(("a", "A", true), ("b", "B", false));
+        cfg.CurrentIndex = 0;
+
+        c.SwitchTo("b");
+
+        Assert.Empty(a.SetCalls);
+        Assert.Single(s.ErrorToasts);
+        Assert.Equal(0, cfg.CurrentIndex);
+    }
+
+    [Fact]
+    public void SwitchTo_UnknownId_ShowsErrorToast()
+    {
+        var (c, a, s, _, _) = Build(("a", "A", true));
+
+        c.SwitchTo("no-such-id");
+
+        Assert.Empty(a.SetCalls);
+        Assert.Single(s.ErrorToasts);
+    }
+
+    [Fact]
+    public void SwitchTo_SetDefaultThrows_DoesNotAdvanceIndex()
+    {
+        var (c, a, s, cfg, saves) = Build(("a", "A", true), ("b", "B", true));
+        cfg.CurrentIndex = 0;
+        a.SetDefaultException = (_, _) => new InvalidOperationException("boom");
+
+        c.SwitchTo("b");
+
+        Assert.Equal(0, cfg.CurrentIndex);
+        Assert.Single(s.ErrorToasts);
+        Assert.Equal(0, saves.Count);
+    }
+
+    [Fact]
+    public void SwitchTo_HealedId_Switches()
+    {
+        // Menu was built after healing, so it passes the live id even though the
+        // config previously held a stale one.
+        var (c, a, s, cfg, saves) = Build(("stale-lg", "LG", false));
+        a.ActiveOutputs.Add(new AudioDevice("live-lg", "LG"));
+
+        c.SwitchTo("live-lg");
+
+        Assert.Equal("live-lg", cfg.Devices[0].EndpointId);
+        Assert.Equal(3, a.SetCalls.Count);
+        Assert.Equal("LG", s.Toasts[^1]);
+        Assert.Equal(1, saves.Count);
+    }
+
+    [Fact]
     public void Cycle_SetDefaultThrows_DoesNotAdvanceIndex()
     {
         var (c, a, s, cfg, _) = Build(("a", "A", true), ("b", "B", true));

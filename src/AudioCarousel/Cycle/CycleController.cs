@@ -66,6 +66,35 @@ public sealed class CycleController
             return;
         }
 
+        ApplySwitch(targetIndex, healed);
+    }
+
+    /// <summary>
+    /// Switches directly to the registered device with the given endpoint ID
+    /// (tray-menu selection). The ID is expected to be current (the menu is
+    /// built after healing), so it is matched post-heal here as well.
+    /// </summary>
+    public void SwitchTo(string endpointId)
+    {
+        if (_config.Devices.Count == 0) return;
+
+        var live = _audio.EnumerateActiveOutputs();
+        bool healed = DeviceMatcher.HealEndpointIds(_config.Devices, live);
+
+        int targetIndex = _config.Devices.FindIndex(d => d.EndpointId == endpointId);
+        bool isAvailable = live.Any(d => string.Equals(d.EndpointId, endpointId, StringComparison.Ordinal));
+        if (targetIndex < 0 || !isAvailable)
+        {
+            if (healed) _persistConfig();
+            _sink.ShowErrorToast(Strings.Get("error.noDeviceAvailable"));
+            return;
+        }
+
+        ApplySwitch(targetIndex, healed);
+    }
+
+    private void ApplySwitch(int targetIndex, bool healed)
+    {
         var target = _config.Devices[targetIndex];
 
         try
