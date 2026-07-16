@@ -13,7 +13,14 @@ public sealed class AudioDeviceService : IAudioDeviceService
         {
             try
             {
+                // FriendlyName reads the endpoint's property store, which can
+                // throw for a device with a broken driver. Skip such devices
+                // instead of letting the exception crash the whole cycle.
                 result.Add(new AudioDevice(d.ID, d.FriendlyName));
+            }
+            catch (Exception)
+            {
+                // unreadable endpoint — skip
             }
             finally
             {
