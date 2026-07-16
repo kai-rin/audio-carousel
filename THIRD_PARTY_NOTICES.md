@@ -18,7 +18,7 @@ licensed under the [MIT License](LICENSE).
 |-----------|---------|---------|--------|
 | xUnit | 2.9.2 | Apache-2.0 | https://github.com/xunit/xunit |
 | xunit.runner.visualstudio | 2.8.2 | Apache-2.0 | https://github.com/xunit/visualstudio.xunit |
-| Microsoft.NET.Test.Sdk | 18.5.1 | MIT | https://github.com/microsoft/vstest |
+| Microsoft.NET.Test.Sdk | 18.7.0 | MIT | https://github.com/microsoft/vstest |
 
 The full text of each license is reproduced in the upstream repositories
 linked above. The MIT License terms in [LICENSE](LICENSE) apply to Audio
