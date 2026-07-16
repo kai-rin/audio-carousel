@@ -7,6 +7,9 @@ public sealed class HotkeyHost : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
     private const int HOTKEY_ID = 1;
+    // Suppress keyboard auto-repeat: holding the hotkey down must fire once,
+    // not cycle devices repeatedly.
+    private const uint MOD_NOREPEAT = 0x4000;
 
     private readonly MessageOnlyWindow _window;
     private bool _registered;
@@ -21,7 +24,7 @@ public sealed class HotkeyHost : IDisposable
     {
         Unregister();
         _onHotkey = onHotkey;
-        bool ok = RegisterHotKey(_window.Handle, HOTKEY_ID, (uint)spec.Modifiers, (uint)spec.Key);
+        bool ok = RegisterHotKey(_window.Handle, HOTKEY_ID, (uint)spec.Modifiers | MOD_NOREPEAT, (uint)spec.Key);
         _registered = ok;
         return ok;
     }
