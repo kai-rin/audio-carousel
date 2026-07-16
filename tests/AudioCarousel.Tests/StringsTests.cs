@@ -52,6 +52,19 @@ public class StringsTests
     }
 
     [Fact]
+    public void Get_SaveFailed_HasTranslationInEveryLanguage()
+    {
+        foreach (Language lang in Enum.GetValues<Language>())
+        {
+            Strings.SetLanguage(lang);
+            string text = Strings.Get("error.saveFailed");
+            Assert.NotEqual("error.saveFailed", text); // key resolved
+            Assert.False(string.IsNullOrWhiteSpace(text));
+        }
+        Strings.SetLanguage(Language.English);
+    }
+
+    [Fact]
     public void Get_LanguageSelfNames_AreSameAcrossAllLanguages()
     {
         // Language self-names like "Español" should appear identically in every UI language.

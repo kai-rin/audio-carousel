@@ -241,6 +241,17 @@ public static class Strings
             "O arquivo de configuração estava corrompido. Foi salvo um backup como audio-carousel.json.bak e os padrões agora estão em uso.",
             "Файл конфигурации был повреждён. Резервная копия сохранена как audio-carousel.json.bak, теперь используются настройки по умолчанию.",
             "구성 파일이 손상되었습니다. 백업이 audio-carousel.json.bak으로 저장되었으며 이제 기본값이 사용됩니다."),
+        ["error.saveFailed"] = M(
+            "Failed to save settings. Make sure the folder containing the app is writable.",
+            "設定の保存に失敗しました。アプリのあるフォルダーが書き込み可能か確認してください。",
+            "保存设置失败。请确认应用所在文件夹可写。",
+            "儲存設定失敗。請確認應用程式所在資料夾可寫入。",
+            "Error al guardar la configuración. Asegúrese de que la carpeta que contiene la aplicación sea escribible.",
+            "Échec de l'enregistrement des paramètres. Vérifiez que le dossier contenant l'application est accessible en écriture.",
+            "Speichern der Einstellungen fehlgeschlagen. Stellen Sie sicher, dass der Ordner mit der Anwendung beschreibbar ist.",
+            "Falha ao salvar as configurações. Verifique se a pasta que contém o aplicativo permite gravação.",
+            "Не удалось сохранить настройки. Убедитесь, что папка с приложением доступна для записи.",
+            "설정을 저장하지 못했습니다. 앱이 있는 폴더에 쓰기가 가능한지 확인하세요."),
         ["error.unhandled"] = M(
             "An unexpected error occurred:", "予期しないエラーが発生しました:",
             "发生意外错误:", "發生未預期的錯誤:",

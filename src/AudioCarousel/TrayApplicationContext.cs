@@ -116,7 +116,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             if (_config.StartWithWindows) _startup.Enable(_exePath);
             else _startup.Disable();
 
-            _store.Save(_config);
+            SaveConfigWithFeedback();
         }
 
         // Always re-apply from current _config — this cleans up any leftover
@@ -157,7 +157,22 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         _config.StartWithWindows = isChecked;
         if (isChecked) _startup.Enable(_exePath);
         else _startup.Disable();
-        _store.Save(_config);
+        SaveConfigWithFeedback();
+    }
+
+    // Explicit user-initiated saves surface failures as a localized message
+    // instead of the raw unhandled-exception dialog.
+    private void SaveConfigWithFeedback()
+    {
+        try
+        {
+            _store.Save(_config);
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(Strings.Get("error.saveFailed"),
+                Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private void ShowAbout()
