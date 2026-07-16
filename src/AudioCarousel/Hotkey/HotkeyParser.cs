@@ -52,6 +52,16 @@ public static class HotkeyParser
     public static HotkeySpec? FromConfigEntry(HotkeyEntry? entry)
     {
         if (entry is null) return null;
-        return Parse(entry.Modifiers, entry.Key);
+        try
+        {
+            return Parse(entry.Modifiers, entry.Key);
+        }
+        catch (FormatException)
+        {
+            // A hand-edited entry that fails to parse degrades to "no hotkey"
+            // instead of crashing startup (the JSON itself was valid, so the
+            // corrupted-config recovery path never runs for this case).
+            return null;
+        }
     }
 }

@@ -60,6 +60,36 @@ public class HotkeyParserTests
     }
 
     [Fact]
+    public void FromConfigEntry_Null_ReturnsNull()
+    {
+        Assert.Null(HotkeyParser.FromConfigEntry(null));
+    }
+
+    [Fact]
+    public void FromConfigEntry_Valid_ReturnsSpec()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = new() { "Ctrl" }, Key = "F16" };
+        var spec = HotkeyParser.FromConfigEntry(entry);
+        Assert.Equal(new HotkeySpec(HotkeyModifier.Control, Keys.F16), spec);
+    }
+
+    // Hand-edited configs must not crash the app at startup: an unparsable
+    // hotkey entry degrades to "no hotkey" instead of throwing.
+    [Fact]
+    public void FromConfigEntry_UnknownKey_ReturnsNull()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = new() { "Ctrl" }, Key = "NotAKey" };
+        Assert.Null(HotkeyParser.FromConfigEntry(entry));
+    }
+
+    [Fact]
+    public void FromConfigEntry_UnknownModifier_ReturnsNull()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = new() { "Hyper" }, Key = "A" };
+        Assert.Null(HotkeyParser.FromConfigEntry(entry));
+    }
+
+    [Fact]
     public void ToConfigEntry_RoundtripsThroughEntry()
     {
         var spec = new HotkeySpec(HotkeyModifier.Control | HotkeyModifier.Win, Keys.F13);
