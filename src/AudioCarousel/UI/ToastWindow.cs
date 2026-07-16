@@ -69,6 +69,7 @@ public sealed class ToastWindow : Form
         else
         {
             // Already on screen — replace text and reset hold.
+            _fadeTimer.Stop();
             _holdTimer.Stop();
             _state = FadeState.Holding;
             Opacity = 1;

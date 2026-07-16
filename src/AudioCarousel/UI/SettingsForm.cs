@@ -12,6 +12,7 @@ public sealed class SettingsForm : Form
 {
     private readonly IAudioDeviceService _audio;
     private readonly ConfigSchema _workingCopy;
+    private readonly Font _boldFont;
 
     private readonly HotkeyTextBox _hotkeyBox;
     private readonly Button _hotkeyClearBtn;
@@ -42,6 +43,7 @@ public sealed class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         Font = new Font("Segoe UI", 11f);
+        _boldFont = new Font(Font, FontStyle.Bold);
         ClientSize = new Size(680, 560);
 
         var hotkeyLabel = new Label { Text = Strings.Get("settings.hotkey"), Left = 20, Top = 22, AutoSize = true };
@@ -147,7 +149,7 @@ public sealed class SettingsForm : Form
             var item = new ListViewItem(display)
             {
                 Tag = new DeviceRow(d.EndpointId, isOnline, isCurrent),
-                Font = isCurrent ? new Font(Font, FontStyle.Bold) : Font,
+                Font = isCurrent ? _boldFont : Font,
             };
             _devicesList.Items.Add(item);
         }
@@ -285,6 +287,15 @@ public sealed class SettingsForm : Form
         CurrentIndex = src.CurrentIndex,
         StartWithWindows = src.StartWithWindows,
     };
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _boldFont.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 
     private sealed record LangItem(string Code, string Display)
     {
