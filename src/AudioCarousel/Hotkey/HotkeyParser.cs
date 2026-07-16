@@ -51,7 +51,10 @@ public static class HotkeyParser
 
     public static HotkeySpec? FromConfigEntry(HotkeyEntry? entry)
     {
-        if (entry is null) return null;
+        // JSON deserialization does not enforce non-null annotations, so a
+        // hand-edited or script-generated config can carry null lists/keys.
+        if (entry?.Key is null || entry.Modifiers is null || entry.Modifiers.Contains(null!))
+            return null;
         try
         {
             return Parse(entry.Modifiers, entry.Key);

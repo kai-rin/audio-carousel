@@ -89,6 +89,30 @@ public class HotkeyParserTests
         Assert.Null(HotkeyParser.FromConfigEntry(entry));
     }
 
+    // JSON deserialization does not enforce non-null annotations, so a config
+    // like {"modifiers": null} or {"key": null} loads without error and must
+    // degrade to "no hotkey" here rather than throw NullReferenceException.
+    [Fact]
+    public void FromConfigEntry_NullModifiers_ReturnsNull()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = null!, Key = "F16" };
+        Assert.Null(HotkeyParser.FromConfigEntry(entry));
+    }
+
+    [Fact]
+    public void FromConfigEntry_NullKey_ReturnsNull()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = new() { "Ctrl" }, Key = null! };
+        Assert.Null(HotkeyParser.FromConfigEntry(entry));
+    }
+
+    [Fact]
+    public void FromConfigEntry_NullModifierElement_ReturnsNull()
+    {
+        var entry = new Config.HotkeyEntry { Modifiers = new() { "Ctrl", null! }, Key = "A" };
+        Assert.Null(HotkeyParser.FromConfigEntry(entry));
+    }
+
     [Fact]
     public void ToConfigEntry_RoundtripsThroughEntry()
     {
