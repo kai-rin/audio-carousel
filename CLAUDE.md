@@ -34,6 +34,8 @@ dotnet format                # fix EOL/whitespace per .editorconfig (CI runs --v
 pwsh ./scripts/publish.ps1                  # local build → publish/AudioCarousel.exe (~108 MB), version = csproj default 1.0.0-dev
 pwsh ./scripts/publish.ps1 -Version 1.2.3   # release-style override; CI passes the tag here
 powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo | fl ProductVersion, FileVersion"  # verify built version
+cd promo && npm run dev                     # Remotion Studio preview
+cd promo && npm run render                  # → promo/out/promo.mp4 (ja); `npm run render:en` → promo-en.mp4
 ```
 
 `scripts/publish.ps1` is the **only** supported way to produce a release exe. Do not construct `dotnet publish` flags by hand.
