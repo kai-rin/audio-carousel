@@ -16,7 +16,7 @@ tests/AudioCarousel.Tests/
 scripts/publish.ps1       # the only supported way to build the release exe
 .github/workflows/        # ci.yml (build/test/format), release.yml (tag → attached zip)
 docs/superpowers/specs/   # design docs
-promo/                    # Remotion promo video (separate npm project; not part of the .NET build)
+promo/                    # Remotion promo video (separate npm project; not part of the .NET build). After `npm install`, promo/node_modules is huge — prune it from recursive find/grep
 ```
 
 ## Tech
