@@ -14,8 +14,9 @@ Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 src/AudioCarousel/        # app (Audio/, Config/, Cycle/, Hotkey/, I18n/, Startup/, UI/, AppVersion.cs, TrayApplicationContext.cs)
 tests/AudioCarousel.Tests/
 scripts/publish.ps1       # the only supported way to build the release exe
-.github/workflows/        # ci.yml (build/test/format), release.yml (tag → attached exe)
+.github/workflows/        # ci.yml (build/test/format), release.yml (tag → attached zip)
 docs/superpowers/specs/   # design docs
+promo/                    # Remotion promo video (separate npm project; not part of the .NET build)
 ```
 
 ## Tech
@@ -58,7 +59,7 @@ powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo
 - **Tests that mutate `Strings._current`** must be in `[Collection("StringsState")]` (defined in `StringsTests.cs`). xUnit parallelizes test classes by default; without the collection, classes that call `Strings.SetLanguage` race against each other and produce flaky failures.
 - **Testable logic goes in `public static` helpers**, not `internal` + `InternalsVisibleTo`. See `Strings`, `HotkeyParser`, `AppVersion` — the test project consumes them through public API only.
 - **About dialog reads `AssemblyInformationalVersion` via `AppVersion.Display`**, which strips the `+sha` suffix appended by `SourceRevisionId`. Add new version-displaying UI through `AppVersion.Display`, not `Assembly.GetName().Version` (that returns the 4-part `AssemblyVersion`, which can't carry prerelease tags like `1.0.0-dev`).
-- **Hero images** (`docs/images/hero-*.png`) are 256-color quantized (PIL `MEDIANCUT`, since `LIBIMAGEQUANT` is not bundled in the Windows wheel) + `oxipng` optimized — ~500 KB each, down from ~1.4 MB raw. When regenerating, re-run the same pipeline; do not commit raw PNG exports.
+- **Hero images** (`docs/images/hero-*.png`) are 256-color quantized (PIL `MEDIANCUT`, since `LIBIMAGEQUANT` is not bundled in the Windows wheel) + `oxipng` optimized — ~0.5–0.65 MB each, down from ~1.4 MB raw. When regenerating, re-run the same pipeline; do not commit raw PNG exports.
 - **Debugging endpoint churn**: enumerate `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\<guid>` — `DeviceState` 1=Active, 4=NOTPRESENT, 8=UNPLUGGED. Multiple same-name GUIDs with one Active = NVIDIA HDA churn in action.
 
 ## Workflow
