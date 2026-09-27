@@ -83,6 +83,33 @@ public class StringsTests
         Strings.SetLanguage(Language.English);
     }
 
+    // Strings.Get returns the key itself for unknown keys, so a renamed or
+    // deleted key would silently show "settings.foo" in the UI. Scan the app
+    // source for every literal key and make sure each one resolves.
+    [Fact]
+    public void EveryKeyUsedInSource_ExistsInTable()
+    {
+        string srcDir = Path.Combine(FindRepoRoot(), "src", "AudioCarousel");
+        var keyPattern = new System.Text.RegularExpressions.Regex("Strings\\.Get\\(\"([^\"]+)\"\\)");
+        var keys = Directory.EnumerateFiles(srcDir, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+            .SelectMany(f => keyPattern.Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value))
+            .Distinct()
+            .ToList();
+
+        Assert.NotEmpty(keys);
+        Strings.SetLanguage(Language.English);
+        Assert.All(keys, key => Assert.NotEqual(key, Strings.Get(key)));
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "AudioCarousel.sln")))
+            dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("repo root not found");
+    }
+
     [Fact]
     public void Get_LanguageSelfNames_AreSameAcrossAllLanguages()
     {

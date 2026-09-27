@@ -10,9 +10,16 @@ namespace AudioCarousel.UI;
 
 public sealed class SettingsForm : Form
 {
+    // Logical (96-DPI) sizes; AutoScaleMode.Dpi scales them to the monitor.
+    private const int ContentWidth = 560;
+    private const int ListHeight = 200;
+
     private readonly IAudioDeviceService _audio;
     private readonly ConfigSchema _workingCopy;
+    private readonly Font _baseFont;
     private readonly Font _boldFont;
+    private readonly ContextMenuStrip _addMenu = new();
+    private readonly ImageList _statusImages = new() { ColorDepth = ColorDepth.Depth32Bit };
 
     private readonly HotkeyTextBox _hotkeyBox;
     private readonly Button _hotkeyClearBtn;
@@ -23,6 +30,7 @@ public sealed class SettingsForm : Form
     private readonly Button _downBtn;
     private readonly ComboBox _languageCombo;
     private readonly CheckBox _startupCheck;
+    private readonly CheckBox _commsCheck;
     private readonly Button _okBtn;
     private readonly Button _cancelBtn;
 
@@ -30,55 +38,117 @@ public sealed class SettingsForm : Form
     public ConfigSchema? Result { get; private set; }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public Func<HotkeySpec, bool>? HotkeyRegistrationProbe { get; set; }
+    public Func<HotkeySpec, HotkeyRegisterResult>? HotkeyRegistrationProbe { get; set; }
 
-    public SettingsForm(ConfigSchema current, IAudioDeviceService audio, bool isFirstRun)
+    public SettingsForm(ConfigSchema current, IAudioDeviceService audio, bool isFirstRun, bool startupEnabled)
     {
         _audio = audio;
-        _workingCopy = Clone(current);
+        _workingCopy = current.Clone();
+        _workingCopy.StartWithWindows = startupEnabled;
+
+        SuspendLayout();
+        AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        _baseFont = new Font("Segoe UI", 10f);
+        _boldFont = new Font(_baseFont, FontStyle.Bold);
+        Font = _baseFont;
 
         Text = Strings.Get(isFirstRun ? "settings.titleFirstRun" : "settings.title");
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         MinimizeBox = false;
-        Font = new Font("Segoe UI", 11f);
-        _boldFont = new Font(Font, FontStyle.Bold);
-        ClientSize = new Size(680, 560);
+        ShowInTaskbar = true;
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        var hotkeyLabel = new Label { Text = Strings.Get("settings.hotkey"), Left = 20, Top = 22, AutoSize = true };
-        _hotkeyBox = new HotkeyTextBox { Left = 130, Top = 18, Width = 390 };
-        _hotkeyClearBtn = new Button { Text = Strings.Get("settings.hotkeyClear"), Left = 530, Top = 17, Width = 130, Height = 30 };
-        var hotkeyHint = new Label { Text = Strings.Get("settings.hotkeyHint"), Left = 130, Top = 50, AutoSize = true, ForeColor = Color.Gray };
+        var root = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(16, 14, 16, 12),
+        };
 
-        var devicesLabel = new Label { Text = Strings.Get("settings.cycleDevices"), Left = 20, Top = 95, AutoSize = true };
+        // --- Hotkey --------------------------------------------------------
+        var hotkeyRow = NewRow(3);
+        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var hotkeyLabel = new Label
+        {
+            Text = Strings.Get("settings.hotkey"),
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 0, 8, 0),
+        };
+        _hotkeyBox = new HotkeyTextBox
+        {
+            Dock = DockStyle.Fill,
+            AccessibleName = Strings.Get("settings.hotkey").TrimEnd(':', ' ', '：'),
+            Margin = new Padding(0, 3, 8, 3),
+        };
+        _hotkeyClearBtn = NewButton("settings.hotkeyClear");
+        hotkeyRow.Controls.Add(hotkeyLabel, 0, 0);
+        hotkeyRow.Controls.Add(_hotkeyBox, 1, 0);
+        hotkeyRow.Controls.Add(_hotkeyClearBtn, 2, 0);
+        root.Controls.Add(hotkeyRow);
+        root.Controls.Add(NewHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
+
+        // --- Devices -------------------------------------------------------
+        root.Controls.Add(new Label
+        {
+            Text = Strings.Get("settings.cycleDevices"),
+            AutoSize = true,
+            Font = _boldFont,
+            Margin = new Padding(0, 16, 0, 2),
+        });
+        root.Controls.Add(NewHint(Strings.Get("settings.devicesHint"), topMargin: 0));
+
         _devicesList = new ListView
         {
-            Left = 20,
-            Top = 122,
-            Width = 640,
-            Height = 244,
+            Size = new Size(ContentWidth, ListHeight),
             View = View.Details,
             FullRowSelect = true,
+            MultiSelect = false,
             HideSelection = false,
             HeaderStyle = ColumnHeaderStyle.None,
-            OwnerDraw = true,
+            SmallImageList = _statusImages,
+            AccessibleName = Strings.Get("settings.cycleDevices").TrimEnd(':', ' ', '：'),
+            Margin = new Padding(0, 6, 0, 6),
         };
-        _devicesList.Columns.Add("Device", 640 - 4);
-        _devicesList.DrawSubItem += DrawDeviceItem;
+        _devicesList.Columns.Add("");
+        root.Controls.Add(_devicesList);
 
-        _addBtn = new Button { Text = Strings.Get("settings.addDevice") + " ▾", Left = 20, Top = 376, Width = 170, Height = 32 };
-        _removeBtn = new Button { Text = Strings.Get("settings.remove"), Left = 196, Top = 376, Width = 110, Height = 32 };
-        _upBtn = new Button { Text = Strings.Get("settings.moveUp"), Left = 312, Top = 376, Width = 70, Height = 32 };
-        _downBtn = new Button { Text = Strings.Get("settings.moveDown"), Left = 388, Top = 376, Width = 70, Height = 32 };
+        var deviceButtons = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            Margin = Padding.Empty,
+        };
+        _addBtn = NewButton("settings.addDevice", suffix: " ▾");
+        _removeBtn = NewButton("settings.remove");
+        _upBtn = NewButton("settings.moveUp");
+        _downBtn = NewButton("settings.moveDown");
+        deviceButtons.Controls.AddRange(new Control[] { _addBtn, _removeBtn, _upBtn, _downBtn });
+        root.Controls.Add(deviceButtons);
 
-        var langLabel = new Label { Text = Strings.Get("settings.language"), Left = 20, Top = 437, AutoSize = true };
+        // --- Options -------------------------------------------------------
+        var langRow = NewRow(2);
+        langRow.Margin = new Padding(0, 16, 0, 4);
+        var langLabel = new Label
+        {
+            Text = Strings.Get("settings.language"),
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 0, 8, 0),
+        };
         _languageCombo = new ComboBox
         {
-            Left = 130,
-            Top = 432,
-            Width = 200,
             DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 220,
+            AccessibleName = Strings.Get("settings.language").TrimEnd(':', ' ', '：'),
         };
         _languageCombo.Items.AddRange(new object[]
         {
@@ -94,85 +164,227 @@ public sealed class SettingsForm : Form
             new LangItem("ru",      Strings.Get("settings.languageRu")),
             new LangItem("ko",      Strings.Get("settings.languageKo")),
         });
+        langRow.Controls.Add(langLabel, 0, 0);
+        langRow.Controls.Add(_languageCombo, 1, 0);
+        root.Controls.Add(langRow);
 
         _startupCheck = new CheckBox
         {
-            Text = Strings.Get("settings.startWithWindows"),
-            Left = 350,
-            Top = 436,
+            Text = Strings.Get("common.startWithWindows"),
             AutoSize = true,
+            Margin = new Padding(0, 6, 0, 0),
         };
+        root.Controls.Add(_startupCheck);
+        _commsCheck = new CheckBox
+        {
+            Text = Strings.Get("settings.switchCommunications"),
+            AutoSize = true,
+            Margin = new Padding(0, 6, 0, 0),
+        };
+        root.Controls.Add(_commsCheck);
 
-        _okBtn = new Button { Text = Strings.Get("settings.ok"), Left = 430, Top = 500, Width = 110, Height = 36, DialogResult = DialogResult.None };
-        _cancelBtn = new Button { Text = Strings.Get("settings.cancel"), Left = 550, Top = 500, Width = 110, Height = 36, DialogResult = DialogResult.Cancel };
+        // --- OK / Cancel ---------------------------------------------------
+        var dialogButtons = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            Anchor = AnchorStyles.Right,
+            Margin = new Padding(0, 18, 0, 0),
+        };
+        _cancelBtn = NewButton("settings.cancel");
+        _cancelBtn.DialogResult = DialogResult.Cancel;
+        _okBtn = NewButton("settings.ok");
+        dialogButtons.Controls.AddRange(new Control[] { _cancelBtn, _okBtn });
+        root.Controls.Add(dialogButtons);
+
         AcceptButton = _okBtn;
         CancelButton = _cancelBtn;
-
-        Controls.AddRange(new Control[]
-        {
-            hotkeyLabel, _hotkeyBox, _hotkeyClearBtn, hotkeyHint,
-            devicesLabel, _devicesList,
-            _addBtn, _removeBtn, _upBtn, _downBtn,
-            langLabel, _languageCombo, _startupCheck,
-            _okBtn, _cancelBtn,
-        });
+        Controls.Add(root);
 
         // Wire events.
-        _hotkeyClearBtn.Click += (_, _) => { _hotkeyBox.Value = null; };
+        _hotkeyClearBtn.Click += (_, _) => _hotkeyBox.Value = null;
+        _hotkeyBox.ValueChanged += (_, _) => UpdateButtons();
         _addBtn.Click += OnAddClicked;
-        _removeBtn.Click += OnRemoveClicked;
-        _upBtn.Click += (_, _) => Move(-1);
-        _downBtn.Click += (_, _) => Move(+1);
+        _removeBtn.Click += (_, _) => RemoveSelected();
+        _upBtn.Click += (_, _) => MoveSelected(-1);
+        _downBtn.Click += (_, _) => MoveSelected(+1);
         _okBtn.Click += OnOkClicked;
+        _devicesList.SelectedIndexChanged += (_, _) => UpdateButtons();
+        _devicesList.KeyDown += OnDevicesKeyDown;
+        _devicesList.Resize += (_, _) => FitColumn();
 
         // Load working copy into UI.
         _hotkeyBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.Hotkey);
         _startupCheck.Checked = _workingCopy.StartWithWindows;
+        _commsCheck.Checked = _workingCopy.SwitchCommunications;
         SelectLanguageItem(_workingCopy.Language);
-        RefreshDevicesList();
+        ResumeLayout(performLayout: true);
     }
 
-    private void RefreshDevicesList()
+    protected override void OnLoad(EventArgs e)
     {
-        _devicesList.Items.Clear();
+        base.OnLoad(e);
+        // DeviceDpi is final here, so the status dots match the list's scale.
+        BuildStatusImages();
+        RefreshDevicesList();
+        FitColumn();
+        // Start on the device list, never on the hotkey box: keyboard users
+        // pressing Enter should hit OK, not start hotkey capture.
+        ActiveControl = _devicesList.Items.Count > 0 ? _devicesList : _addBtn;
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        // Opened from a tray click or a second launch: make sure it isn't
+        // hidden behind the app the user was just in.
+        Activate();
+    }
+
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);
+        BuildStatusImages();
+        RefreshDevicesList();
+        FitColumn();
+    }
+
+    private static TableLayoutPanel NewRow(int columns) => new()
+    {
+        ColumnCount = columns,
+        RowCount = 1,
+        AutoSize = true,
+        AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        Dock = DockStyle.Fill,
+        Margin = Padding.Empty,
+    };
+
+    private static Label NewHint(string text, int topMargin) => new()
+    {
+        Text = text,
+        AutoSize = true,
+        MaximumSize = new Size(ContentWidth, 0),
+        ForeColor = SystemColors.GrayText,
+        Margin = new Padding(0, topMargin, 0, 0),
+    };
+
+    private static Button NewButton(string key, string suffix = "") => new()
+    {
+        Text = Strings.Get(key) + suffix,
+        AutoSize = true,
+        AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        MinimumSize = new Size(88, 30),
+        Padding = new Padding(8, 0, 8, 0),
+        Margin = new Padding(0, 0, 6, 0),
+        UseVisualStyleBackColor = true,
+    };
+
+    private void BuildStatusImages()
+    {
+        int size = LogicalToDeviceUnits(16);
+        _statusImages.Images.Clear();
+        _statusImages.ImageSize = new Size(size, size);
+        _statusImages.Images.Add("online", DrawDot(size, Color.SeaGreen, filled: true));
+        _statusImages.Images.Add("offline", DrawDot(size, SystemColors.GrayText, filled: false));
+    }
+
+    private static Bitmap DrawDot(int size, Color color, bool filled)
+    {
+        var bmp = new Bitmap(size, size);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        float d = size * 0.5f;
+        var rect = new RectangleF((size - d) / 2, (size - d) / 2, d, d);
+        if (filled)
+        {
+            using var brush = new SolidBrush(color);
+            g.FillEllipse(brush, rect);
+        }
+        else
+        {
+            using var pen = new Pen(color, Math.Max(1f, size / 12f));
+            g.DrawEllipse(pen, rect);
+        }
+        return bmp;
+    }
+
+    private void FitColumn()
+    {
+        if (_devicesList.Columns.Count > 0)
+            _devicesList.Columns[0].Width = _devicesList.ClientSize.Width;
+    }
+
+    private void RefreshDevicesList(int selectIndex = -1)
+    {
+        if (selectIndex < 0 && _devicesList.SelectedIndices.Count > 0)
+            selectIndex = _devicesList.SelectedIndices[0];
+
         var live = _audio.EnumerateActiveOutputs();
         DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
-        var available = live
-            .ToDictionary(d => d.EndpointId, d => d.DisplayName, StringComparer.Ordinal);
+        var available = new HashSet<string>(live.Select(d => d.EndpointId), StringComparer.Ordinal);
         string? currentDefault = _audio.GetDefaultOutputId(AudioRole.Multimedia);
 
+        _devicesList.BeginUpdate();
+        _devicesList.Items.Clear();
         foreach (var d in _workingCopy.Devices)
         {
-            bool isOnline = available.ContainsKey(d.EndpointId);
+            bool isOnline = available.Contains(d.EndpointId);
             bool isCurrent = isOnline && d.EndpointId == currentDefault;
-            string display = isOnline ? d.DisplayName : $"{d.DisplayName} {Strings.Get("settings.offline")}";
-            var item = new ListViewItem(display)
+            // State is spelled out in the text (not just the icon/bold) so
+            // screen readers announce it too.
+            string display = d.DisplayName;
+            if (isCurrent) display += "  " + Strings.Get("settings.current");
+            else if (!isOnline) display += "  " + Strings.Get("common.offline");
+            _devicesList.Items.Add(new ListViewItem(display)
             {
-                Tag = new DeviceRow(d.EndpointId, isOnline, isCurrent),
-                Font = isCurrent ? _boldFont : Font,
-            };
-            _devicesList.Items.Add(item);
+                ImageKey = isOnline ? "online" : "offline",
+                Font = isCurrent ? _boldFont : _baseFont,
+                ForeColor = isOnline ? SystemColors.WindowText : SystemColors.GrayText,
+            });
         }
+        _devicesList.EndUpdate();
+
+        if (_devicesList.Items.Count > 0 && selectIndex >= 0)
+        {
+            int i = Math.Min(selectIndex, _devicesList.Items.Count - 1);
+            _devicesList.Items[i].Selected = true;
+            _devicesList.Items[i].Focused = true;
+            _devicesList.EnsureVisible(i);
+        }
+        UpdateButtons();
     }
 
-    private void DrawDeviceItem(object? sender, DrawListViewSubItemEventArgs e)
+    private int SelectedIndex =>
+        _devicesList.SelectedIndices.Count > 0 ? _devicesList.SelectedIndices[0] : -1;
+
+    private void UpdateButtons()
     {
-        e.DrawBackground();
-        if (e.Item!.Selected)
-            e.Graphics.FillRectangle(SystemBrushes.Highlight, e.Bounds);
+        int idx = SelectedIndex;
+        _removeBtn.Enabled = idx >= 0;
+        _upBtn.Enabled = idx > 0;
+        _downBtn.Enabled = idx >= 0 && idx < _workingCopy.Devices.Count - 1;
+        _hotkeyClearBtn.Enabled = _hotkeyBox.Value is not null;
+    }
 
-        var row = (DeviceRow)e.Item.Tag!;
-        string marker = row.IsCurrent ? "★ " : "  ";
-        string statusDot = row.IsOnline ? "●" : "○";
-
-        var brush = e.Item.Selected ? SystemBrushes.HighlightText : SystemBrushes.WindowText;
-        var statusBrush = row.IsOnline ? Brushes.SeaGreen : Brushes.Gray;
-        if (e.Item.Selected) statusBrush = SystemBrushes.HighlightText;
-
-        var rect = e.Bounds;
-        e.Graphics.DrawString(marker, e.Item.Font, brush, rect.Left + 6, rect.Top + 2);
-        e.Graphics.DrawString(statusDot, e.Item.Font, statusBrush, rect.Left + 30, rect.Top + 2);
-        e.Graphics.DrawString(e.Item.Text, e.Item.Font, brush, rect.Left + 54, rect.Top + 2);
+    private void OnDevicesKeyDown(object? sender, KeyEventArgs e)
+    {
+        switch (e.KeyCode)
+        {
+            case Keys.Delete:
+                RemoveSelected();
+                e.Handled = true;
+                break;
+            case Keys.Up when e.Control || e.Alt:
+                MoveSelected(-1);
+                e.Handled = true;
+                break;
+            case Keys.Down when e.Control || e.Alt:
+                MoveSelected(+1);
+                e.Handled = true;
+                break;
+        }
     }
 
     private void OnAddClicked(object? sender, EventArgs e)
@@ -181,14 +393,15 @@ public sealed class SettingsForm : Form
         // Heal so a churned-ID device counts as registered instead of a duplicate candidate.
         DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
         var registered = new HashSet<string>(_workingCopy.Devices.Select(d => d.EndpointId), StringComparer.Ordinal);
-        var candidates = live
-            .Where(d => !registered.Contains(d.EndpointId))
-            .ToList();
+        var candidates = live.Where(d => !registered.Contains(d.EndpointId)).ToList();
 
-        var menu = new ContextMenuStrip();
+        foreach (ToolStripItem old in _addMenu.Items.Cast<ToolStripItem>().ToList())
+            old.Dispose();
+        _addMenu.Items.Clear();
+
         if (candidates.Count == 0)
         {
-            menu.Items.Add(new ToolStripMenuItem(Strings.Get("settings.noNewDevices")) { Enabled = false });
+            _addMenu.Items.Add(new ToolStripMenuItem(Strings.Get("settings.noNewDevices")) { Enabled = false });
         }
         else
         {
@@ -203,35 +416,36 @@ public sealed class SettingsForm : Form
                         DisplayName = d.DisplayName,
                         AddedAt = DateTimeOffset.Now,
                     });
-                    RefreshDevicesList();
+                    RefreshDevicesList(selectIndex: _workingCopy.Devices.Count - 1);
+                    _devicesList.Focus();
                 };
-                menu.Items.Add(menuItem);
+                _addMenu.Items.Add(menuItem);
             }
         }
-        menu.Show(_addBtn, new Point(0, _addBtn.Height));
+        _addMenu.Show(_addBtn, new Point(0, _addBtn.Height));
     }
 
-    private void OnRemoveClicked(object? sender, EventArgs e)
+    private void RemoveSelected()
     {
-        if (_devicesList.SelectedIndices.Count == 0) return;
-        int idx = _devicesList.SelectedIndices[0];
+        int idx = SelectedIndex;
+        if (idx < 0) return;
         _workingCopy.Devices.RemoveAt(idx);
         if (_workingCopy.CurrentIndex >= _workingCopy.Devices.Count)
             _workingCopy.CurrentIndex = 0;
-        RefreshDevicesList();
+        RefreshDevicesList(selectIndex: idx);
+        if (_workingCopy.Devices.Count == 0) _addBtn.Focus();
     }
 
-    private new void Move(int delta)
+    private void MoveSelected(int delta)
     {
-        if (_devicesList.SelectedIndices.Count == 0) return;
-        int idx = _devicesList.SelectedIndices[0];
+        int idx = SelectedIndex;
+        if (idx < 0) return;
         int target = idx + delta;
         if (target < 0 || target >= _workingCopy.Devices.Count) return;
         (_workingCopy.Devices[idx], _workingCopy.Devices[target]) =
             (_workingCopy.Devices[target], _workingCopy.Devices[idx]);
-        RefreshDevicesList();
-        _devicesList.Items[target].Selected = true;
-        _devicesList.Items[target].Focused = true;
+        RefreshDevicesList(selectIndex: target);
+        _devicesList.Focus();
     }
 
     private void OnOkClicked(object? sender, EventArgs e)
@@ -239,16 +453,20 @@ public sealed class SettingsForm : Form
         // Validate hotkey re-registration if set.
         if (_hotkeyBox.Value is HotkeySpec spec && HotkeyRegistrationProbe is not null)
         {
-            if (!HotkeyRegistrationProbe(spec))
+            var probe = HotkeyRegistrationProbe(spec);
+            if (probe != HotkeyRegisterResult.Ok)
             {
-                MessageBox.Show(this, Strings.Get("error.hotkeyInUse"),
+                string key = probe == HotkeyRegisterResult.InUse ? "error.hotkeyInUse" : "error.hotkeyInvalid";
+                MessageBox.Show(this, Strings.Get(key),
                     Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _hotkeyBox.Focus();
                 return;
             }
         }
 
         _workingCopy.Hotkey = _hotkeyBox.Value is HotkeySpec s ? HotkeyParser.ToConfigEntry(s) : null;
         _workingCopy.StartWithWindows = _startupCheck.Checked;
+        _workingCopy.SwitchCommunications = _commsCheck.Checked;
         _workingCopy.Language = ((LangItem)_languageCombo.SelectedItem!).Code;
 
         Result = _workingCopy;
@@ -269,38 +487,21 @@ public sealed class SettingsForm : Form
         _languageCombo.SelectedIndex = 0;
     }
 
-    private static ConfigSchema Clone(ConfigSchema src) => new()
-    {
-        Version = src.Version,
-        Language = src.Language,
-        Hotkey = src.Hotkey is null ? null : new HotkeyEntry
-        {
-            Modifiers = new List<string>(src.Hotkey.Modifiers),
-            Key = src.Hotkey.Key,
-        },
-        Devices = src.Devices.Select(d => new DeviceEntry
-        {
-            EndpointId = d.EndpointId,
-            DisplayName = d.DisplayName,
-            AddedAt = d.AddedAt,
-        }).ToList(),
-        CurrentIndex = src.CurrentIndex,
-        StartWithWindows = src.StartWithWindows,
-    };
-
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
         if (disposing)
         {
+            // After the controls that reference them are gone.
+            _addMenu.Dispose();
+            _statusImages.Dispose();
             _boldFont.Dispose();
+            _baseFont.Dispose();
         }
-        base.Dispose(disposing);
     }
 
     private sealed record LangItem(string Code, string Display)
     {
         public override string ToString() => Display;
     }
-
-    private sealed record DeviceRow(string EndpointId, bool IsOnline, bool IsCurrent);
 }

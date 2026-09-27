@@ -97,7 +97,7 @@ public sealed class TrayIcon : IDisposable
         {
             string text = row.IsOnline
                 ? row.DisplayName
-                : $"{row.DisplayName} {Strings.Get("settings.offline")}";
+                : $"{row.DisplayName} {Strings.Get("common.offline")}";
             var item = new ToolStripMenuItem(text)
             {
                 Checked = row.IsCurrent,
@@ -124,10 +124,10 @@ public sealed class TrayIcon : IDisposable
 
     public void ApplyLabels()
     {
-        _titleItem.Text = Strings.Get("tray.title");
+        _titleItem.Text = Strings.Get("app.title");
         _cycleItem.Text = Strings.Get("tray.cycleNext");
         _settingsItem.Text = Strings.Get("tray.settings");
-        _startupItem.Text = Strings.Get("tray.startWithWindows");
+        _startupItem.Text = Strings.Get("common.startWithWindows");
         _aboutItem.Text = Strings.Get("tray.about");
         _exitItem.Text = Strings.Get("tray.exit");
     }

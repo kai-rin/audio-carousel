@@ -10,6 +10,8 @@
     <RootNamespace>AudioCarousel</RootNamespace>
     <AssemblyName>AudioCarousel</AssemblyName>
     <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
+    <!-- Read by ApplicationConfiguration.Initialize(); sharp text on mixed-DPI setups. -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
     <!-- Default version for local/dev builds. CI overrides via -p:Version=<tag> from release.yml. -->
     <Version>1.0.0-dev</Version>

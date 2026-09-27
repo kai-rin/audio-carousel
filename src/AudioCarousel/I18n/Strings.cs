@@ -38,7 +38,20 @@ public static class Strings
     private static readonly Dictionary<string, Dictionary<Language, string>> Table = new()
     {
         ["app.title"] = Same("Audio Carousel"),
-        ["tray.title"] = Same("Audio Carousel"),
+
+        // Shared between the tray menu and the settings dialog.
+        ["common.startWithWindows"] = M(
+            "Start with Windows", "Windows起動時に開始",
+            "随 Windows 启动", "隨 Windows 啟動",
+            "Iniciar con Windows", "Démarrer avec Windows",
+            "Mit Windows starten", "Iniciar com o Windows",
+            "Запускать с Windows", "Windows 시작 시 실행"),
+        ["common.offline"] = M(
+            "(offline)", "(未接続)",
+            "（离线）", "（離線）",
+            "(desconectado)", "(hors ligne)",
+            "(nicht verbunden)", "(desconectado)",
+            "(не в сети)", "(오프라인)"),
 
         ["tray.currentPrefix"] = M(
             "Current: ", "現在: ",
@@ -64,12 +77,6 @@ public static class Strings
             "Configuración...", "Paramètres...",
             "Einstellungen...", "Configurações...",
             "Настройки...", "설정..."),
-        ["tray.startWithWindows"] = M(
-            "Start with Windows", "Windows起動時に開始",
-            "随 Windows 启动", "隨 Windows 啟動",
-            "Iniciar con Windows", "Démarrer avec Windows",
-            "Mit Windows starten", "Iniciar com o Windows",
-            "Запускать с Windows", "Windows 시작 시 실행"),
         ["tray.about"] = M(
             "About", "バージョン情報",
             "关于", "關於",
@@ -150,17 +157,17 @@ public static class Strings
             "Entfernen", "Remover",
             "Удалить", "제거"),
         ["settings.moveUp"] = M(
-            "Up", "上へ",
+            "Move up", "上へ移動",
             "上移", "上移",
-            "Arriba", "Monter",
-            "Nach oben", "Para cima",
-            "Вверх", "위로"),
+            "Subir", "Monter",
+            "Nach oben", "Mover para cima",
+            "Вверх", "위로 이동"),
         ["settings.moveDown"] = M(
-            "Down", "下へ",
+            "Move down", "下へ移動",
             "下移", "下移",
-            "Abajo", "Descendre",
-            "Nach unten", "Para baixo",
-            "Вниз", "아래로"),
+            "Bajar", "Descendre",
+            "Nach unten", "Mover para baixo",
+            "Вниз", "아래로 이동"),
         ["settings.language"] = M(
             "Language:", "言語:",
             "语言:", "語言:",
@@ -186,12 +193,17 @@ public static class Strings
         ["settings.languageRu"] = Same("Русский"),
         ["settings.languageKo"] = Same("한국어"),
 
-        ["settings.startWithWindows"] = M(
-            "Start with Windows", "Windows起動時に開始",
-            "随 Windows 启动", "隨 Windows 啟動",
-            "Iniciar con Windows", "Démarrer avec Windows",
-            "Mit Windows starten", "Iniciar com o Windows",
-            "Запускать с Windows", "Windows 시작 시 실행"),
+        ["settings.switchCommunications"] = M(
+            "Also switch the communications device (used for calls)",
+            "通話用デバイス（Teams・Discord など）も切り替える",
+            "同时切换通信设备（用于通话）",
+            "同時切換通訊裝置（用於通話）",
+            "Cambiar también el dispositivo de comunicaciones (llamadas)",
+            "Changer aussi le périphérique de communication (appels)",
+            "Auch das Kommunikationsgerät (für Anrufe) wechseln",
+            "Alternar também o dispositivo de comunicação (chamadas)",
+            "Переключать и устройство связи (для звонков)",
+            "통신 장치(통화용)도 함께 전환"),
         ["settings.ok"] = Same("OK"),
         ["settings.cancel"] = M(
             "Cancel", "キャンセル",
@@ -199,12 +211,23 @@ public static class Strings
             "Cancelar", "Annuler",
             "Abbrechen", "Cancelar",
             "Отмена", "취소"),
-        ["settings.offline"] = M(
-            "(offline)", "(未接続)",
-            "（离线）", "（離線）",
-            "(desconectado)", "(hors ligne)",
-            "(offline)", "(offline)",
-            "(не в сети)", "(오프라인)"),
+        ["settings.current"] = M(
+            "(current)", "(現在)",
+            "（当前）", "（目前）",
+            "(actual)", "(actuel)",
+            "(aktuell)", "(atual)",
+            "(текущее)", "(현재)"),
+        ["settings.devicesHint"] = M(
+            "The hotkey switches to the next device in this list. Offline devices are skipped.",
+            "ホットキーを押すたびに、この一覧の次のデバイスへ切り替わります。未接続のデバイスは飛ばします。",
+            "每按一次热键就切换到列表中的下一个设备。未连接的设备会被跳过。",
+            "每按一次快速鍵就切換到清單中的下一個裝置。未連接的裝置會被略過。",
+            "La tecla rápida cambia al siguiente dispositivo de esta lista. Se omiten los desconectados.",
+            "Le raccourci passe au périphérique suivant de cette liste. Les périphériques hors ligne sont ignorés.",
+            "Die Tastenkombination wechselt zum nächsten Gerät dieser Liste. Nicht verbundene Geräte werden übersprungen.",
+            "A tecla de atalho muda para o próximo dispositivo desta lista. Dispositivos desconectados são ignorados.",
+            "Сочетание клавиш переключает на следующее устройство из списка. Отключённые устройства пропускаются.",
+            "단축키를 누르면 이 목록의 다음 장치로 전환됩니다. 연결되지 않은 장치는 건너뜁니다."),
         ["settings.noNewDevices"] = M(
             "(no new devices available)", "(追加可能なデバイスがありません)",
             "（没有可添加的新设备）", "（沒有可新增的新裝置）",
@@ -259,6 +282,28 @@ public static class Strings
             "O arquivo de configuração estava corrompido. Foi salvo um backup como audio-carousel.json.bak e os padrões agora estão em uso.",
             "Файл конфигурации был повреждён. Резервная копия сохранена как audio-carousel.json.bak, теперь используются настройки по умолчанию.",
             "구성 파일이 손상되었습니다. 백업이 audio-carousel.json.bak으로 저장되었으며 이제 기본값이 사용됩니다."),
+        ["error.configUnreadable"] = M(
+            "audio-carousel.json could not be read (another program may be using it). Audio Carousel is running with default settings and will not save changes until it is restarted.",
+            "audio-carousel.json を読み込めませんでした（別のプログラムが使用中の可能性があります）。既定の設定で動作し、再起動するまで変更は保存しません。",
+            "无法读取 audio-carousel.json（可能正被其他程序使用）。Audio Carousel 正以默认设置运行，重新启动前不会保存更改。",
+            "無法讀取 audio-carousel.json（可能正由其他程式使用）。Audio Carousel 正以預設設定執行，重新啟動前不會儲存變更。",
+            "No se pudo leer audio-carousel.json (puede que otro programa lo esté usando). Audio Carousel funciona con la configuración predeterminada y no guardará cambios hasta que se reinicie.",
+            "Impossible de lire audio-carousel.json (un autre programme l'utilise peut-être). Audio Carousel fonctionne avec les paramètres par défaut et n'enregistrera aucune modification avant son redémarrage.",
+            "audio-carousel.json konnte nicht gelesen werden (möglicherweise wird die Datei von einem anderen Programm verwendet). Audio Carousel läuft mit Standardeinstellungen und speichert bis zum Neustart keine Änderungen.",
+            "Não foi possível ler audio-carousel.json (outro programa pode estar usando o arquivo). O Audio Carousel está usando as configurações padrão e não salvará alterações até ser reiniciado.",
+            "Не удалось прочитать audio-carousel.json (возможно, файл занят другой программой). Audio Carousel работает с настройками по умолчанию и не будет сохранять изменения до перезапуска.",
+            "audio-carousel.json을 읽을 수 없습니다(다른 프로그램이 사용 중일 수 있음). Audio Carousel은 기본 설정으로 실행되며 다시 시작할 때까지 변경 내용을 저장하지 않습니다."),
+        ["error.startupFailed"] = M(
+            "Couldn't change the \"Start with Windows\" setting. Windows may be blocking changes to startup apps.",
+            "「Windows起動時に開始」を変更できませんでした。Windows がスタートアップアプリの変更をブロックしている可能性があります。",
+            "无法更改“随 Windows 启动”设置。Windows 可能阻止了对启动应用的更改。",
+            "無法變更「隨 Windows 啟動」設定。Windows 可能封鎖了啟動應用程式的變更。",
+            "No se pudo cambiar «Iniciar con Windows». Puede que Windows esté bloqueando los cambios en las aplicaciones de inicio.",
+            "Impossible de modifier « Démarrer avec Windows ». Windows bloque peut-être les modifications des applications de démarrage.",
+            "„Mit Windows starten“ konnte nicht geändert werden. Möglicherweise blockiert Windows Änderungen an Autostart-Apps.",
+            "Não foi possível alterar \"Iniciar com o Windows\". O Windows pode estar bloqueando alterações nos aplicativos de inicialização.",
+            "Не удалось изменить параметр «Запускать с Windows». Возможно, Windows блокирует изменения автозагрузки.",
+            "'Windows 시작 시 실행' 설정을 변경할 수 없습니다. Windows가 시작 앱 변경을 차단하고 있을 수 있습니다."),
         ["error.saveFailed"] = M(
             "Failed to save settings. Make sure the folder containing the app is writable.",
             "設定の保存に失敗しました。アプリのあるフォルダーが書き込み可能か確認してください。",
@@ -278,16 +323,16 @@ public static class Strings
             "Произошла непредвиденная ошибка:", "예기치 못한 오류가 발생했습니다:"),
 
         ["about.body"] = M(
-            "Audio Carousel — switch the default audio output device with a global hotkey.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — グローバルホットキーで音声出力デバイスを切り替えます。\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — 通过全局热键切换默认音频输出设备。\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — 透過全域快速鍵切換預設音訊輸出裝置。\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — cambia el dispositivo de salida de audio predeterminado con una tecla rápida global.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — change le périphérique de sortie audio par défaut avec un raccourci global.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — wechselt mit einer globalen Tastenkombination das Standard-Audiowiedergabegerät.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — alterna o dispositivo de saída de áudio padrão com uma tecla de atalho global.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — переключает аудиоустройство по умолчанию глобальным сочетанием клавиш.\n\nhttps://github.com/kai-rin/audio-carousel",
-            "Audio Carousel — 전역 단축키로 기본 오디오 출력 장치를 전환합니다.\n\nhttps://github.com/kai-rin/audio-carousel"),
+            "Audio Carousel — switch the default audio output device with a global hotkey.",
+            "Audio Carousel — グローバルホットキーで音声出力デバイスを切り替えます。",
+            "Audio Carousel — 通过全局热键切换默认音频输出设备。",
+            "Audio Carousel — 透過全域快速鍵切換預設音訊輸出裝置。",
+            "Audio Carousel — cambia el dispositivo de salida de audio predeterminado con una tecla rápida global.",
+            "Audio Carousel — change le périphérique de sortie audio par défaut avec un raccourci global.",
+            "Audio Carousel — wechselt mit einer globalen Tastenkombination das Standard-Audiowiedergabegerät.",
+            "Audio Carousel — alterna o dispositivo de saída de áudio padrão com uma tecla de atalho global.",
+            "Audio Carousel — переключает аудиоустройство по умолчанию глобальным сочетанием клавиш.",
+            "Audio Carousel — 전역 단축키로 기본 오디오 출력 장치를 전환합니다."),
     };
 
     public static void SetLanguage(Language lang) => _current = lang;
