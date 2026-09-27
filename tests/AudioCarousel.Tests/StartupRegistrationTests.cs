@@ -19,6 +19,8 @@ public class StartupRegistrationTests : IDisposable
         using var key = Registry.CurrentUser.OpenSubKey(
             @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
         key?.DeleteValue(_testValueName, throwOnMissingValue: false);
+        using var approved = Registry.CurrentUser.OpenSubKey(ApprovedKeyPath, writable: true);
+        approved?.DeleteValue(_testValueName, throwOnMissingValue: false);
     }
 
     [Fact]
@@ -80,6 +82,86 @@ public class StartupRegistrationTests : IDisposable
         reg.EnsurePath(@"D:\My Tools\AudioCarousel.exe");
 
         Assert.Equal("\"D:\\My Tools\\AudioCarousel.exe\"", ReadRawValue());
+    }
+
+    // Task Manager's "Disable" leaves the Run value in place and records the
+    // choice under StartupApproved\Run; the app must see the effective state.
+    [Fact]
+    public void IsEnabled_FalseWhenDisabledInTaskManager()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"C:\path\to\exe.exe");
+        WriteApprovedValue(0x03);
+
+        Assert.False(reg.IsEnabled());
+    }
+
+    [Fact]
+    public void IsEnabled_TrueWhenTaskManagerMarksEnabled()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"C:\path\to\exe.exe");
+        WriteApprovedValue(0x02);
+
+        Assert.True(reg.IsEnabled());
+    }
+
+    // Re-enabling from the app must actually make Windows run it again.
+    [Fact]
+    public void Enable_ClearsTaskManagerDisabledMarker()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"C:\path\to\exe.exe");
+        WriteApprovedValue(0x03);
+
+        reg.Enable(@"C:\path\to\exe.exe");
+
+        Assert.True(reg.IsEnabled());
+        Assert.Null(ReadApprovedValue());
+    }
+
+    // Moving the exe only fixes the path; it must not silently undo a
+    // Task Manager disable.
+    [Fact]
+    public void EnsurePath_KeepsTaskManagerDisable()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"C:\old\path.exe");
+        WriteApprovedValue(0x03);
+
+        reg.EnsurePath(@"C:\new\path.exe");
+
+        Assert.Equal(@"C:\new\path.exe", reg.GetRegisteredPath());
+        Assert.False(reg.IsEnabled());
+    }
+
+    [Fact]
+    public void Disable_AlsoRemovesTaskManagerMarker()
+    {
+        var reg = new StartupRegistration(_testValueName);
+        reg.Enable(@"C:\path\to\exe.exe");
+        WriteApprovedValue(0x03);
+
+        reg.Disable();
+
+        Assert.Null(ReadApprovedValue());
+    }
+
+    private const string ApprovedKeyPath =
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
+    private void WriteApprovedValue(byte state)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(ApprovedKeyPath, writable: true);
+        var data = new byte[12];
+        data[0] = state;
+        key.SetValue(_testValueName, data, RegistryValueKind.Binary);
+    }
+
+    private byte[]? ReadApprovedValue()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(ApprovedKeyPath, writable: false);
+        return key?.GetValue(_testValueName) as byte[];
     }
 
     private string? ReadRawValue()
