@@ -176,15 +176,18 @@ public sealed class ConfigStore
         }
         config.Devices = devices;
 
-        if (config.Hotkey is not null)
-        {
-            if (config.Hotkey.Key is null || config.Hotkey.Modifiers is null)
-                config.Hotkey = null;
-            else
-                config.Hotkey.Modifiers.RemoveAll(m => m is null);
-        }
+        config.Hotkey = NormalizeHotkey(config.Hotkey);
+        config.HotkeyPrevious = NormalizeHotkey(config.HotkeyPrevious);
 
         ClampCurrentIndex(config);
+    }
+
+    private static HotkeyEntry? NormalizeHotkey(HotkeyEntry? hotkey)
+    {
+        if (hotkey is null) return null;
+        if (hotkey.Key is null || hotkey.Modifiers is null) return null;
+        hotkey.Modifiers.RemoveAll(m => m is null);
+        return hotkey;
     }
 
     private static void ClampCurrentIndex(ConfigSchema config)

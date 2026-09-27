@@ -24,6 +24,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     private readonly TrayIcon _tray;
     private readonly ToastWindow _toast;
     private readonly HotkeyHost _hotkeyHost;
+    private readonly HotkeyHost _prevHotkeyHost;
     private readonly CycleController _cycle;
     private readonly SynchronizationContext _ui;
     private readonly DefaultDeviceWatcher? _watcher;
@@ -60,11 +61,12 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _tray = new TrayIcon();
         _hotkeyHost = new HotkeyHost();
+        _prevHotkeyHost = new HotkeyHost();
 
         _cycle = new CycleController(_config, _audio, this, PersistCurrentIndex);
 
         WireTrayEvents();
-        var hotkeyResult = ApplyHotkeyFromConfig(showErrors: false);
+        var hotkeyResult = ApplyHotkeysFromConfig(showErrors: false);
         RefreshTrayCurrentLabel();
         _tray.SetStartupChecked(IsStartupEnabled());
 
@@ -94,7 +96,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             PostMessageBox("error.configUnreadable", MessageBoxIcon.Warning);
         if (load.WasCorrupted)
             PostMessageBox("error.configCorrupted", MessageBoxIcon.Warning);
-        if (hotkeyResult is HotkeyRegisterResult result && result != HotkeyRegisterResult.Ok)
+        if (hotkeyResult is HotkeyRegisterResult result)
             PostMessageBox(HotkeyErrorKey(result), MessageBoxIcon.Warning);
         if (load.FreshlyCreated)
             _ui.Post(_ => OpenSettings(firstRun: true), null);
@@ -109,6 +111,12 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     private void WireTrayEvents()
     {
         _tray.CycleRequested += () => _cycle.Cycle();
+        _tray.CyclePreviousRequested += () => _cycle.CyclePrevious();
+        _tray.LeftClicked += () =>
+        {
+            if (_config.LeftClickCycles) _cycle.Cycle();
+            else OpenSettings(firstRun: false);
+        };
         _tray.SettingsRequested += () => OpenSettings(firstRun: false);
         _tray.AboutRequested += ShowAbout;
         _tray.ExitRequested += ExitApp;
@@ -149,7 +157,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
         using var form = new SettingsForm(_config, _audio, firstRun, IsStartupEnabled())
         {
-            HotkeyRegistrationProbe = ProbeHotkey,
+            HotkeyRegistrationProbe = ProbeHotkeys,
         };
         _openSettings = form;
         DialogResult result;
@@ -169,7 +177,10 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _config.Hotkey = newCfg.Hotkey;
             _config.Devices = newCfg.Devices;
             _config.Language = newCfg.Language;
+            _config.HotkeyPrevious = newCfg.HotkeyPrevious;
             _config.SwitchCommunications = newCfg.SwitchCommunications;
+            _config.ShowToast = newCfg.ShowToast;
+            _config.LeftClickCycles = newCfg.LeftClickCycles;
             if (_config.CurrentIndex >= _config.Devices.Count) _config.CurrentIndex = 0;
 
             Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.GetCurrentUiCultureName()));
@@ -191,38 +202,67 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
         // Always re-apply from current _config — this cleans up any leftover
         // hotkey registration left behind by a successful probe followed by Cancel.
-        ApplyHotkeyFromConfig(showErrors: true);
+        ApplyHotkeysFromConfig(showErrors: true);
         RefreshTrayCurrentLabel();
+
+        if (firstRun) ShowRunningBalloon();
     }
 
-    private HotkeyRegisterResult ProbeHotkey(HotkeySpec spec)
-    {
-        // Try to register; if success, we re-apply from config in the OK path anyway.
-        var result = _hotkeyHost.TryRegister(spec, () => _cycle.Cycle());
-        if (result != HotkeyRegisterResult.Ok)
-        {
-            // Re-apply previous registration so we don't end up with no hotkey.
-            ApplyHotkeyFromConfig(showErrors: false);
-        }
-        return result;
-    }
-
-    // Returns null when no hotkey is configured.
-    private HotkeyRegisterResult? ApplyHotkeyFromConfig(bool showErrors)
+    // The tray icon is easy to lose (Windows 11 starts new icons in the
+    // overflow flyout), so say once where the app went and how to use it.
+    private void ShowRunningBalloon()
     {
         var spec = HotkeyParser.FromConfigEntry(_config.Hotkey);
-        if (spec is null)
+        string text = spec is HotkeySpec s
+            ? string.Format(Strings.Get("balloon.withHotkey"), HotkeyParser.FormatForDisplay(s))
+            : Strings.Get("balloon.noHotkey");
+        _tray.ShowBalloon(Strings.Get("balloon.title"), text);
+    }
+
+    private HotkeyProbeResult ProbeHotkeys(HotkeySpec? next, HotkeySpec? previous)
+    {
+        // Free both first so swapping the two combinations doesn't collide
+        // with our own registrations. On success, the OK path re-applies
+        // from config anyway.
+        _hotkeyHost.Unregister();
+        _prevHotkeyHost.Unregister();
+        var nextResult = next is HotkeySpec n
+            ? _hotkeyHost.TryRegister(n, () => _cycle.Cycle())
+            : HotkeyRegisterResult.Ok;
+        var prevResult = previous is HotkeySpec p
+            ? _prevHotkeyHost.TryRegister(p, () => _cycle.CyclePrevious())
+            : HotkeyRegisterResult.Ok;
+        if (nextResult != HotkeyRegisterResult.Ok || prevResult != HotkeyRegisterResult.Ok)
         {
-            _hotkeyHost.Unregister();
-            return null;
+            // Re-apply the previous registrations so we don't end up with none.
+            ApplyHotkeysFromConfig(showErrors: false);
         }
-        var result = _hotkeyHost.TryRegister(spec.Value, () => _cycle.Cycle());
-        if (result != HotkeyRegisterResult.Ok && showErrors)
+        return new HotkeyProbeResult(nextResult, prevResult);
+    }
+
+    // Registers both configured hotkeys. Returns the first failure, or null
+    // when everything that is configured registered fine.
+    private HotkeyRegisterResult? ApplyHotkeysFromConfig(bool showErrors)
+    {
+        _hotkeyHost.Unregister();
+        _prevHotkeyHost.Unregister();
+        var nextFailure = Register(_hotkeyHost, _config.Hotkey, () => _cycle.Cycle());
+        var prevFailure = Register(_prevHotkeyHost, _config.HotkeyPrevious, () => _cycle.CyclePrevious());
+        var failure = nextFailure ?? prevFailure;
+        if (failure is HotkeyRegisterResult f && showErrors)
         {
-            MessageBox.Show(Strings.Get(HotkeyErrorKey(result)),
+            MessageBox.Show(Strings.Get(HotkeyErrorKey(f)),
                 Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
-        return result;
+        return failure;
+    }
+
+    private static HotkeyRegisterResult? Register(HotkeyHost host, HotkeyEntry? entry, Action onHotkey)
+    {
+        var spec = HotkeyParser.FromConfigEntry(entry);
+        if (spec is null) return null;
+        var result = host.TryRegister(spec.Value, onHotkey);
+        return result == HotkeyRegisterResult.Ok ? null : result;
     }
 
     private void OnStartupToggled(bool isChecked)
@@ -319,6 +359,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _showSettingsWait?.Unregister(null);
             _watcher?.Dispose();
             _hotkeyHost.Dispose();
+            _prevHotkeyHost.Dispose();
             _tray.Dispose();
             _toast.Dispose();
             // Let a just-queued save (e.g. the last cycle before Exit) land.
@@ -361,7 +402,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     }
 
     // === ICycleSink ===
-    public void ShowToast(string text) => _toast.ShowMessage(text);
+    public void ShowToast(string text)
+    {
+        // Errors always show; the success toast is optional.
+        if (_config.ShowToast) _toast.ShowMessage(text);
+    }
     public void ShowErrorToast(string text) => _toast.ShowMessage(text, isError: true);
     public void NotifyCurrentDeviceChanged() => RefreshTrayCurrentLabel();
 }

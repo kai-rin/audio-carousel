@@ -13,6 +13,10 @@ public sealed class ConfigSchema
     [JsonPropertyName("hotkey")]
     public HotkeyEntry? Hotkey { get; set; }
 
+    // Optional second hotkey that walks the list backwards.
+    [JsonPropertyName("hotkeyPrevious")]
+    public HotkeyEntry? HotkeyPrevious { get; set; }
+
     [JsonPropertyName("devices")]
     public List<DeviceEntry> Devices { get; set; } = new();
 
@@ -27,15 +31,20 @@ public sealed class ConfigSchema
     [JsonPropertyName("switchCommunications")]
     public bool SwitchCommunications { get; set; } = true;
 
+    [JsonPropertyName("showToast")]
+    public bool ShowToast { get; set; } = true;
+
+    // Left-click on the tray icon: cycle (true, the original behavior) or
+    // open Settings (false).
+    [JsonPropertyName("leftClickCycles")]
+    public bool LeftClickCycles { get; set; } = true;
+
     public ConfigSchema Clone() => new()
     {
         Version = Version,
         Language = Language,
-        Hotkey = Hotkey is null ? null : new HotkeyEntry
-        {
-            Modifiers = new List<string>(Hotkey.Modifiers),
-            Key = Hotkey.Key,
-        },
+        Hotkey = CloneHotkey(Hotkey),
+        HotkeyPrevious = CloneHotkey(HotkeyPrevious),
         Devices = Devices.Select(d => new DeviceEntry
         {
             EndpointId = d.EndpointId,
@@ -45,6 +54,14 @@ public sealed class ConfigSchema
         CurrentIndex = CurrentIndex,
         StartWithWindows = StartWithWindows,
         SwitchCommunications = SwitchCommunications,
+        ShowToast = ShowToast,
+        LeftClickCycles = LeftClickCycles,
+    };
+
+    private static HotkeyEntry? CloneHotkey(HotkeyEntry? entry) => entry is null ? null : new HotkeyEntry
+    {
+        Modifiers = new List<string>(entry.Modifiers),
+        Key = entry.Key,
     };
 }
 

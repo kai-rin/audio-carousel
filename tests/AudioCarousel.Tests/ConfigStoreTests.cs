@@ -182,6 +182,19 @@ public class ConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_NullsInPreviousHotkey_AreNormalized()
+    {
+        File.WriteAllText(_path,
+            "{\"version\":1,\"hotkeyPrevious\":{\"modifiers\":null,\"key\":\"F15\"},\"devices\":[]}");
+        var store = new ConfigStore(_path);
+
+        var result = store.Load();
+
+        Assert.False(result.WasCorrupted);
+        Assert.Null(result.Config.HotkeyPrevious);
+    }
+
+    [Fact]
     public void Load_NullDevicesList_IsNormalizedNotTreatedAsCorrupt()
     {
         File.WriteAllText(_path, "{\"version\":1,\"devices\":null}");

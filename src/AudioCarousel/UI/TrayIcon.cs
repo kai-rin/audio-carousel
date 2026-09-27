@@ -16,12 +16,15 @@ public sealed class TrayIcon : IDisposable
     private readonly ToolStripMenuItem _currentItem;
     private readonly List<ToolStripMenuItem> _deviceItems = new();
     private readonly ToolStripMenuItem _cycleItem;
+    private readonly ToolStripMenuItem _cyclePrevItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _startupItem;
     private readonly ToolStripMenuItem _aboutItem;
     private readonly ToolStripMenuItem _exitItem;
 
     public event Action? CycleRequested;
+    public event Action? CyclePreviousRequested;
+    public event Action? LeftClicked;
     public event Action? SettingsRequested;
     public event Action<bool>? StartupToggled;
     public event Action? AboutRequested;
@@ -35,12 +38,14 @@ public sealed class TrayIcon : IDisposable
         _titleItem = new ToolStripMenuItem { Enabled = false };
         _currentItem = new ToolStripMenuItem { Enabled = false };
         _cycleItem = new ToolStripMenuItem();
+        _cyclePrevItem = new ToolStripMenuItem();
         _settingsItem = new ToolStripMenuItem();
         _startupItem = new ToolStripMenuItem { CheckOnClick = true };
         _aboutItem = new ToolStripMenuItem();
         _exitItem = new ToolStripMenuItem();
 
         _cycleItem.Click += (_, _) => CycleRequested?.Invoke();
+        _cyclePrevItem.Click += (_, _) => CyclePreviousRequested?.Invoke();
         _settingsItem.Click += (_, _) => SettingsRequested?.Invoke();
         _startupItem.Click += (_, _) => StartupToggled?.Invoke(_startupItem.Checked);
         _aboutItem.Click += (_, _) => AboutRequested?.Invoke();
@@ -52,6 +57,7 @@ public sealed class TrayIcon : IDisposable
             _currentItem,
             new ToolStripSeparator(),
             _cycleItem,
+            _cyclePrevItem,
             new ToolStripSeparator(),
             _settingsItem,
             _startupItem,
@@ -68,7 +74,7 @@ public sealed class TrayIcon : IDisposable
         };
         _notifyIcon.MouseClick += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left) CycleRequested?.Invoke();
+            if (e.Button == MouseButtons.Left) LeftClicked?.Invoke();
         };
         _menu.Opening += (_, _) => MenuOpening?.Invoke();
 
@@ -126,11 +132,15 @@ public sealed class TrayIcon : IDisposable
     {
         _titleItem.Text = Strings.Get("app.title");
         _cycleItem.Text = Strings.Get("tray.cycleNext");
+        _cyclePrevItem.Text = Strings.Get("tray.cyclePrevious");
         _settingsItem.Text = Strings.Get("tray.settings");
         _startupItem.Text = Strings.Get("common.startWithWindows");
         _aboutItem.Text = Strings.Get("tray.about");
         _exitItem.Text = Strings.Get("tray.exit");
     }
+
+    public void ShowBalloon(string title, string text) =>
+        _notifyIcon.ShowBalloonTip(10000, title, text, ToolTipIcon.Info);
 
     private static Icon? LoadEmbeddedIcon()
     {

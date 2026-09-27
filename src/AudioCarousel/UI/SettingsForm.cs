@@ -21,9 +21,13 @@ public sealed class SettingsForm : Form
     private readonly ContextMenuStrip _addMenu = new();
     private readonly ImageList _statusImages = new() { ColorDepth = ColorDepth.Depth32Bit };
     private readonly List<Label> _hints = new();
+    private readonly TableLayoutPanel _hotkeyTable;
 
-    private readonly HotkeyTextBox _hotkeyBox;
-    private readonly Button _hotkeyClearBtn;
+    private readonly bool _isFirstRun;
+    private readonly HotkeyTextBox _nextBox;
+    private readonly Button _nextClearBtn;
+    private readonly HotkeyTextBox _prevBox;
+    private readonly Button _prevClearBtn;
     private readonly ListView _devicesList;
     private readonly Button _addBtn;
     private readonly Button _removeBtn;
@@ -32,6 +36,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _languageCombo;
     private readonly CheckBox _startupCheck;
     private readonly CheckBox _commsCheck;
+    private readonly CheckBox _toastCheck;
+    private readonly CheckBox _leftClickCheck;
     private readonly Button _okBtn;
     private readonly Button _cancelBtn;
 
@@ -39,11 +45,12 @@ public sealed class SettingsForm : Form
     public ConfigSchema? Result { get; private set; }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public Func<HotkeySpec, HotkeyRegisterResult>? HotkeyRegistrationProbe { get; set; }
+    public Func<HotkeySpec?, HotkeySpec?, HotkeyProbeResult>? HotkeyRegistrationProbe { get; set; }
 
     public SettingsForm(ConfigSchema current, IAudioDeviceService audio, bool isFirstRun, bool startupEnabled)
     {
         _audio = audio;
+        _isFirstRun = isFirstRun;
         _workingCopy = current.Clone();
         _workingCopy.StartWithWindows = startupEnabled;
 
@@ -71,38 +78,13 @@ public sealed class SettingsForm : Form
             Padding = new Padding(16, 14, 16, 12),
         };
 
-        // --- Hotkey --------------------------------------------------------
-        var hotkeyRow = NewRow(3);
-        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        hotkeyRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        var hotkeyLabel = new Label
-        {
-            Text = Strings.Get("settings.hotkey"),
-            AutoSize = true,
-            Anchor = AnchorStyles.Left,
-            Margin = new Padding(0, 0, 8, 0),
-        };
-        _hotkeyBox = new HotkeyTextBox
-        {
-            Dock = DockStyle.Fill,
-            AccessibleName = Strings.Get("settings.hotkey").TrimEnd(':', ' ', '：'),
-            Margin = new Padding(0, 3, 8, 3),
-        };
-        _hotkeyClearBtn = NewButton("settings.hotkeyClear");
-        hotkeyRow.Controls.Add(hotkeyLabel, 0, 0);
-        hotkeyRow.Controls.Add(_hotkeyBox, 1, 0);
-        hotkeyRow.Controls.Add(_hotkeyClearBtn, 2, 0);
-        root.Controls.Add(hotkeyRow);
-        root.Controls.Add(AddHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
-
         // --- Devices -------------------------------------------------------
         root.Controls.Add(new Label
         {
             Text = Strings.Get("settings.cycleDevices"),
             AutoSize = true,
             Font = _boldFont,
-            Margin = new Padding(0, 16, 0, 2),
+            Margin = new Padding(0, 0, 0, 2),
         });
         root.Controls.Add(AddHint(Strings.Get("settings.devicesHint"), topMargin: 0));
 
@@ -134,6 +116,25 @@ public sealed class SettingsForm : Form
         _downBtn = NewButton("settings.moveDown");
         deviceButtons.Controls.AddRange(new Control[] { _addBtn, _removeBtn, _upBtn, _downBtn });
         root.Controls.Add(deviceButtons);
+
+        // --- Hotkeys -------------------------------------------------------
+        // Below the device list: on first run you pick devices, then the key.
+        root.Controls.Add(new Label
+        {
+            Text = Strings.Get("settings.hotkeys"),
+            AutoSize = true,
+            Font = _boldFont,
+            Margin = new Padding(0, 16, 0, 4),
+        });
+        _hotkeyTable = NewRow(3);
+        _hotkeyTable.RowCount = 2;
+        _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        (_nextBox, _nextClearBtn) = AddHotkeyRow(_hotkeyTable, 0, "settings.hotkeyNext");
+        (_prevBox, _prevClearBtn) = AddHotkeyRow(_hotkeyTable, 1, "settings.hotkeyPrevious");
+        root.Controls.Add(_hotkeyTable);
+        root.Controls.Add(AddHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
 
         // --- Options -------------------------------------------------------
         var langRow = NewRow(2);
@@ -183,6 +184,20 @@ public sealed class SettingsForm : Form
             Margin = new Padding(0, 6, 0, 0),
         };
         root.Controls.Add(_commsCheck);
+        _toastCheck = new CheckBox
+        {
+            Text = Strings.Get("settings.showToast"),
+            AutoSize = true,
+            Margin = new Padding(0, 6, 0, 0),
+        };
+        root.Controls.Add(_toastCheck);
+        _leftClickCheck = new CheckBox
+        {
+            Text = Strings.Get("settings.leftClickCycles"),
+            AutoSize = true,
+            Margin = new Padding(0, 6, 0, 0),
+        };
+        root.Controls.Add(_leftClickCheck);
 
         // --- OK / Cancel ---------------------------------------------------
         var dialogButtons = new FlowLayoutPanel
@@ -205,8 +220,10 @@ public sealed class SettingsForm : Form
         Controls.Add(root);
 
         // Wire events.
-        _hotkeyClearBtn.Click += (_, _) => _hotkeyBox.Value = null;
-        _hotkeyBox.ValueChanged += (_, _) => UpdateButtons();
+        _nextClearBtn.Click += (_, _) => _nextBox.Value = null;
+        _prevClearBtn.Click += (_, _) => _prevBox.Value = null;
+        _nextBox.ValueChanged += (_, _) => UpdateButtons();
+        _prevBox.ValueChanged += (_, _) => UpdateButtons();
         _addBtn.Click += OnAddClicked;
         _removeBtn.Click += (_, _) => RemoveSelected();
         _upBtn.Click += (_, _) => MoveSelected(-1);
@@ -217,9 +234,12 @@ public sealed class SettingsForm : Form
         _devicesList.Resize += (_, _) => FitColumn();
 
         // Load working copy into UI.
-        _hotkeyBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.Hotkey);
+        _nextBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.Hotkey);
+        _prevBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.HotkeyPrevious);
         _startupCheck.Checked = _workingCopy.StartWithWindows;
         _commsCheck.Checked = _workingCopy.SwitchCommunications;
+        _toastCheck.Checked = _workingCopy.ShowToast;
+        _leftClickCheck.Checked = _workingCopy.LeftClickCycles;
         SelectLanguageItem(_workingCopy.Language);
         ResumeLayout(performLayout: true);
     }
@@ -264,6 +284,29 @@ public sealed class SettingsForm : Form
         Margin = Padding.Empty,
     };
 
+    private (HotkeyTextBox box, Button clear) AddHotkeyRow(TableLayoutPanel table, int row, string labelKey)
+    {
+        string label = Strings.Get(labelKey);
+        var box = new HotkeyTextBox
+        {
+            Dock = DockStyle.Fill,
+            AccessibleName = label.TrimEnd(':', ' ', '：'),
+            Margin = new Padding(0, 3, 8, 3),
+        };
+        var clear = NewButton("settings.hotkeyClear");
+        clear.Margin = new Padding(0, 2, 0, 2);
+        table.Controls.Add(new Label
+        {
+            Text = label,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 0, 8, 0),
+        }, 0, row);
+        table.Controls.Add(box, 1, row);
+        table.Controls.Add(clear, 2, row);
+        return (box, clear);
+    }
+
     private Label AddHint(string text, int topMargin)
     {
         var label = new Label
@@ -278,15 +321,35 @@ public sealed class SettingsForm : Form
         return label;
     }
 
-    // Wrap hints at the list's real (DPI-scaled) width. GDI (TextRenderer)
-    // word-wrapping broke Russian text mid-word here, so hints lay out with
-    // GDI+, which only breaks between words.
+    // Wrap hints and option texts at the list's real (DPI-scaled) width so a
+    // long translation never widens the dialog past the list. GDI
+    // (TextRenderer) word-wrapping broke Russian text mid-word here, so they
+    // lay out with GDI+, which only breaks between words.
     private void FitHints()
     {
+        var maxSize = new Size(_devicesList.Width, 0);
+        // A docked table reports its current width as preferred, which would
+        // pin the dialog at whatever width it had before; line it up with the list.
+        _hotkeyTable.Dock = DockStyle.None;
+        _hotkeyTable.MinimumSize = maxSize;
+        _hotkeyTable.MaximumSize = maxSize;
         foreach (var hint in _hints)
         {
             hint.UseCompatibleTextRendering = true;
-            hint.MaximumSize = new Size(_devicesList.Width, 0);
+            hint.MaximumSize = maxSize;
+        }
+        // CheckBox never wraps while AutoSize is on, so size it explicitly:
+        // full list width, height measured for the wrapped text.
+        int glyph = LogicalToDeviceUnits(22);
+        foreach (var check in new[] { _startupCheck, _commsCheck, _toastCheck, _leftClickCheck })
+        {
+            check.UseCompatibleTextRendering = true;
+            check.AutoSize = false;
+            check.CheckAlign = ContentAlignment.TopLeft;
+            check.TextAlign = ContentAlignment.TopLeft;
+            using var g = check.CreateGraphics();
+            var text = g.MeasureString(check.Text, check.Font, maxSize.Width - glyph);
+            check.Size = new Size(maxSize.Width, (int)Math.Ceiling(text.Height) + LogicalToDeviceUnits(4));
         }
     }
 
@@ -395,7 +458,8 @@ public sealed class SettingsForm : Form
         _removeBtn.Enabled = idx >= 0;
         _upBtn.Enabled = idx > 0;
         _downBtn.Enabled = idx >= 0 && idx < _workingCopy.Devices.Count - 1;
-        _hotkeyClearBtn.Enabled = _hotkeyBox.Value is not null;
+        _nextClearBtn.Enabled = _nextBox.Value is not null;
+        _prevClearBtn.Enabled = _prevBox.Value is not null;
     }
 
     private void OnDevicesKeyDown(object? sender, KeyEventArgs e)
@@ -480,29 +544,72 @@ public sealed class SettingsForm : Form
 
     private void OnOkClicked(object? sender, EventArgs e)
     {
-        // Validate hotkey re-registration if set.
-        if (_hotkeyBox.Value is HotkeySpec spec && HotkeyRegistrationProbe is not null)
+        HotkeySpec? next = _nextBox.Value;
+        HotkeySpec? prev = _prevBox.Value;
+
+        if (next is not null && next == prev)
         {
-            var probe = HotkeyRegistrationProbe(spec);
-            if (probe != HotkeyRegisterResult.Ok)
+            Warn("error.hotkeysSame");
+            _prevBox.Focus();
+            return;
+        }
+
+        // First run: closing with nothing set leaves a tray icon that does
+        // nothing useful, so make sure that's intended.
+        if (_isFirstRun)
+        {
+            if (_workingCopy.Devices.Count == 0 && !Confirm("settings.confirmNoDevices"))
             {
-                string key = probe == HotkeyRegisterResult.InUse ? "error.hotkeyInUse" : "error.hotkeyInvalid";
-                MessageBox.Show(this, Strings.Get(key),
-                    Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                _hotkeyBox.Focus();
+                _addBtn.Focus();
+                return;
+            }
+            if (_workingCopy.Devices.Count > 0 && next is null && prev is null && !Confirm("settings.confirmNoHotkey"))
+            {
+                _nextBox.Focus();
                 return;
             }
         }
 
-        _workingCopy.Hotkey = _hotkeyBox.Value is HotkeySpec s ? HotkeyParser.ToConfigEntry(s) : null;
+        // Validate hotkey registration before accepting.
+        if ((next is not null || prev is not null) && HotkeyRegistrationProbe is not null)
+        {
+            var probe = HotkeyRegistrationProbe(next, prev);
+            if (probe.Next != HotkeyRegisterResult.Ok)
+            {
+                Warn(HotkeyErrorKey(probe.Next));
+                _nextBox.Focus();
+                return;
+            }
+            if (probe.Previous != HotkeyRegisterResult.Ok)
+            {
+                Warn(HotkeyErrorKey(probe.Previous));
+                _prevBox.Focus();
+                return;
+            }
+        }
+
+        _workingCopy.Hotkey = next is HotkeySpec n ? HotkeyParser.ToConfigEntry(n) : null;
+        _workingCopy.HotkeyPrevious = prev is HotkeySpec p ? HotkeyParser.ToConfigEntry(p) : null;
         _workingCopy.StartWithWindows = _startupCheck.Checked;
         _workingCopy.SwitchCommunications = _commsCheck.Checked;
+        _workingCopy.ShowToast = _toastCheck.Checked;
+        _workingCopy.LeftClickCycles = _leftClickCheck.Checked;
         _workingCopy.Language = ((LangItem)_languageCombo.SelectedItem!).Code;
 
         Result = _workingCopy;
         DialogResult = DialogResult.OK;
         Close();
     }
+
+    private static string HotkeyErrorKey(HotkeyRegisterResult result) =>
+        result == HotkeyRegisterResult.InUse ? "error.hotkeyInUse" : "error.hotkeyInvalid";
+
+    private void Warn(string key) =>
+        MessageBox.Show(this, Strings.Get(key), Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+    private bool Confirm(string key) =>
+        MessageBox.Show(this, Strings.Get(key), Strings.Get("app.title"),
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
 
     private void SelectLanguageItem(string code)
     {

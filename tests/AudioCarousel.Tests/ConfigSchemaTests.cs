@@ -51,6 +51,35 @@ public class ConfigSchemaTests
         Assert.True(loaded!.SwitchCommunications);
     }
 
+    // Files written before these options existed keep today's behavior.
+    [Fact]
+    public void NewOptions_MissingFromJson_KeepPreviousBehavior()
+    {
+        var loaded = JsonSerializer.Deserialize("{\"version\":1,\"devices\":[]}", ConfigJsonContext.Default.ConfigSchema);
+        Assert.Null(loaded!.HotkeyPrevious);
+        Assert.True(loaded.ShowToast);
+        Assert.True(loaded.LeftClickCycles);
+    }
+
+    [Fact]
+    public void Clone_CopiesNewOptions()
+    {
+        var original = new ConfigSchema
+        {
+            HotkeyPrevious = new HotkeyEntry { Modifiers = new() { "Ctrl" }, Key = "F15" },
+            ShowToast = false,
+            LeftClickCycles = false,
+        };
+
+        var copy = original.Clone();
+        copy.HotkeyPrevious!.Modifiers.Add("Alt");
+
+        Assert.Single(original.HotkeyPrevious!.Modifiers);
+        Assert.Equal("F15", copy.HotkeyPrevious.Key);
+        Assert.False(copy.ShowToast);
+        Assert.False(copy.LeftClickCycles);
+    }
+
     [Fact]
     public void Clone_IsDeepCopy()
     {
