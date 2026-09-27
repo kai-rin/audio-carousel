@@ -24,17 +24,19 @@ installer, single executable, portable configuration.
   Bluetooth headset ever paired, virtual audio cables, and so on.
   Audio Carousel only rotates through the ones you selected, so the
   cycle stays short and predictable.
+- **Forward and back.** One hotkey steps to the next device, an
+  optional second one steps back to the previous device.
 - **Visual confirmation.** A toast appears at the bottom-right of the
-  active monitor showing the new device's name. The tray icon's tooltip
-  also reflects the current device.
+  monitor your mouse is on, showing the new device's name (you can turn
+  it off). The tray icon's tooltip always shows the current device.
 - **Calls stay where you want them.** By default the device used for
   calls (Teams, Discord, Zoom) follows the switch too; untick one
   option in Settings to keep your headset for calls while music and
   games move around.
 - **Tray-resident, mouse-friendly.** Left-click the tray icon to cycle
-  (same as the hotkey). Right-click for a menu that lists your devices —
-  click one to switch to it directly, plus Cycle next, Settings, About,
-  Exit.
+  (same as the hotkey — or set it to open Settings instead). Right-click
+  for a menu that lists your devices — click one to switch to it
+  directly, plus Cycle next / previous, Settings, About, Exit.
 - **Flexible hotkeys.** Modifier combinations (`Ctrl+Alt+A`) and the
   rarely-used function keys (`F13`–`F24`, common on programmable
   keyboards and macro pads) all work.
@@ -88,29 +90,38 @@ In the Settings window:
 
 1. **Add the audio outputs you want to cycle.** Click *Add device* and
    pick from the dropdown. Typical choices: speakers, headset, monitor
-   speakers over HDMI/DisplayPort, Bluetooth earbuds. Two devices is enough to make the hotkey useful.
+   speakers over HDMI/DisplayPort, Bluetooth earbuds. Two devices is
+   enough to make the hotkey useful.
 2. **Reorder if you like.** Use *Move up* / *Move down* (or
    `Ctrl+↑` / `Ctrl+↓`) to set the cycle order; `Delete` removes the
    selected device.
-3. **Set a hotkey.** Click the hotkey field (or Tab to it and press
-   `Enter`), then press the keys you want — e.g. `F16`, `Ctrl+Alt+A`,
-   `Ctrl+Shift+F9`. `F1`–`F24` work on their own; any other key needs
-   `Ctrl`, `Alt` or `Win` so ordinary typing is never hijacked. `Esc`
-   cancels, `Backspace` (or *Clear*) removes the hotkey.
+3. **Set a hotkey.** Click the *Next device* field (or Tab to it and
+   press `Enter`), then press the keys you want — e.g. `F16`,
+   `Ctrl+Alt+A`, `Ctrl+Shift+F9`. `F1`–`F24` work on their own; any
+   other key needs `Ctrl`, `Alt` or `Win` so ordinary typing is never
+   hijacked. `Esc` cancels, `Backspace` (or *Clear*) removes the hotkey.
+   Optionally set a *Previous device* hotkey the same way.
 4. **(Optional) UI language.** Defaults to *Auto* (follows Windows). Pick
    a specific language if you prefer.
 5. **(Optional) Start with Windows.** Tick the checkbox to launch Audio
    Carousel automatically when you sign in.
 6. **(Optional) Calls device.** Untick *Also switch the communications
    device* if calls should stay on the device you picked in Windows.
-7. Click **OK**.
+7. **(Optional) Toast and left-click.** Turn off the switch
+   notification, or make a left-click on the tray icon open Settings
+   instead of switching.
+8. Click **OK**. A notification points out the tray icon and how to use
+   it. On Windows 11 new tray icons start in the overflow flyout (the
+   `^` next to the clock) — drag it onto the taskbar to keep it
+   visible.
 
 ## Daily use
 
 - **Press the hotkey** from any app → audio jumps to the next device
-  on your list. A toast at the bottom-right of the active monitor
-  confirms the switch.
-- **Left-click the tray icon** does the same as pressing the hotkey.
+  on your list (the *Previous device* hotkey goes back). A toast at the
+  bottom-right of the monitor your mouse is on confirms the switch.
+- **Left-click the tray icon** does the same as pressing the hotkey
+  (or opens Settings, if you chose that).
 - **Hover the tray icon** to see the current output — it stays accurate
   even when Windows or another app changes the device.
 - **Launch `AudioCarousel.exe` again** to bring up Settings of the copy
@@ -118,7 +129,7 @@ In the Settings window:
 - **Right-click the tray icon** for the menu:
   - **Your registered devices** — the current one is checked; click any
     other to switch to it directly (offline devices are grayed out)
-  - **Cycle next** — same as hotkey
+  - **Cycle next** / **Previous device** — same as the hotkeys
   - **Settings** — reopen the settings window
   - **Start with Windows** — toggle without opening Settings
   - **About** — version info
@@ -135,8 +146,14 @@ In the Settings window:
   defaults for that session and never overwrites your file.
 - **Registry:** the only write is to
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` when
-  *Start with Windows* is on. Turning it off removes the entry. Only the
+  *Start with Windows* is on. Turning it off removes the entry. If you
+  disabled the app in Task Manager's *Startup apps*, Audio Carousel shows
+  it as off; turning it on again from the app also clears that
+  Task Manager flag (`...\Explorer\StartupApproved\Run`). Only the
   current user is affected. No admin rights are required.
+- **Updates:** the app never goes online, so it can't tell you about new
+  versions. *Watch → Custom → Releases* on the GitHub repository to get
+  notified.
 - **No background services, no scheduled tasks, no telemetry.** The
   app is just the one .exe.
 
@@ -157,7 +174,8 @@ If you skip step 1, you can also clean up later by deleting the
 - Windows 10 1809 or later, or Windows 11
 - x64
 - No admin rights required
-- No .NET runtime required (self-contained build)
+- No .NET runtime required (self-contained build — that's why the exe
+  is ~111 MB; the zip download is ~45 MB)
 
 ## Known limitations
 

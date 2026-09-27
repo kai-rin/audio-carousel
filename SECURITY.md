@@ -24,7 +24,11 @@ For non-security bugs, use the regular issue tracker.
   config that fails to parse is kept as `audio-carousel.json.bak` before
   defaults are restored. Nothing is written anywhere else on disk.
 - Writes a single `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value
-  if (and only if) "Start with Windows" is enabled by the user.
+  if (and only if) "Start with Windows" is enabled by the user. Enabling or
+  disabling it from the app also removes the app's own Task Manager
+  enable/disable flag under
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`,
+  if present. No other registry locations are touched.
 - Calls the undocumented Windows COM interface `IPolicyConfig` to switch the
   default audio endpoint. This is the standard technique used by similar
   tools (SoundSwitch, EarTrumpet, NirCmd) and requires no elevated privileges.
