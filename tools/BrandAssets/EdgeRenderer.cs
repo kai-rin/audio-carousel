@@ -63,10 +63,22 @@ public static class EdgeRenderer
         throw new InvalidOperationException($"Edge did not produce {pngPath}.");
     }
 
+    // Edge's helper processes keep profile files open for a few seconds after
+    // the main process exits; retry so ~20 MB profiles don't pile up in %TEMP%.
     private static void TryDelete(string dir)
     {
-        try { Directory.Delete(dir, recursive: true); }
-        catch (IOException) { /* Edge may still hold a file for a moment; temp dir, harmless */ }
-        catch (UnauthorizedAccessException) { }
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            try
+            {
+                Directory.Delete(dir, recursive: true);
+                return;
+            }
+            catch (DirectoryNotFoundException) { return; }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            Thread.Sleep(500);
+        }
+        Console.Error.WriteLine($"note: could not delete temporary Edge profile {dir}");
     }
 }
