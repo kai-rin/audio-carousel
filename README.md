@@ -27,6 +27,10 @@ installer, single executable, portable configuration.
 - **Visual confirmation.** A toast appears at the bottom-right of the
   active monitor showing the new device's name. The tray icon's tooltip
   also reflects the current device.
+- **Calls stay where you want them.** By default the device used for
+  calls (Teams, Discord, Zoom) follows the switch too; untick one
+  option in Settings to keep your headset for calls while music and
+  games move around.
 - **Tray-resident, mouse-friendly.** Left-click the tray icon to cycle
   (same as the hotkey). Right-click for a menu that lists your devices —
   click one to switch to it directly, plus Cycle next, Settings, About,
@@ -57,11 +61,17 @@ installer, single executable, portable configuration.
 
 ## Download and run
 
-1. Download `AudioCarousel.exe` from the
+1. Download `AudioCarousel-<version>-win-x64.zip` from the
    [Releases](https://github.com/kai-rin/audio-carousel/releases) page
-   and put it in any folder you like (e.g.
-   `C:\Tools\AudioCarousel\`).
-2. Double-click to launch.
+   and extract it to any folder you like (e.g.
+   `C:\Tools\AudioCarousel\`). The zip holds `AudioCarousel.exe` and
+   the license files.
+
+   > **Optional: verify the download.** Each release also lists a
+   > `.sha256` checksum, and the build is attested by GitHub Actions:
+   > `gh attestation verify AudioCarousel-<version>-win-x64.zip --repo kai-rin/audio-carousel`
+
+2. Double-click `AudioCarousel.exe` to launch.
 
    > **First-run note:** because the binary is unsigned, Windows
    > SmartScreen may show "Windows protected your PC". Click
@@ -77,18 +87,23 @@ installer, single executable, portable configuration.
 In the Settings window:
 
 1. **Add the audio outputs you want to cycle.** Click *Add device* and
-   pick from the dropdown. Typical choices: speakers, headset, HDMI TV,
-   Bluetooth earbuds. Two devices is enough to make the hotkey useful.
-2. **Reorder if you like.** Use *Move up* / *Move down* to set the
-   cycle order.
-3. **Set a hotkey.** Click the hotkey field and press the keys you
-   want — e.g. `F16`, `Ctrl+Alt+A`, `Win+Shift+S` (use anything not
-   already taken). Click *Clear* to remove.
+   pick from the dropdown. Typical choices: speakers, headset, monitor
+   speakers over HDMI/DisplayPort, Bluetooth earbuds. Two devices is enough to make the hotkey useful.
+2. **Reorder if you like.** Use *Move up* / *Move down* (or
+   `Ctrl+↑` / `Ctrl+↓`) to set the cycle order; `Delete` removes the
+   selected device.
+3. **Set a hotkey.** Click the hotkey field (or Tab to it and press
+   `Enter`), then press the keys you want — e.g. `F16`, `Ctrl+Alt+A`,
+   `Ctrl+Shift+F9`. `F1`–`F24` work on their own; any other key needs
+   `Ctrl`, `Alt` or `Win` so ordinary typing is never hijacked. `Esc`
+   cancels, `Backspace` (or *Clear*) removes the hotkey.
 4. **(Optional) UI language.** Defaults to *Auto* (follows Windows). Pick
    a specific language if you prefer.
 5. **(Optional) Start with Windows.** Tick the checkbox to launch Audio
    Carousel automatically when you sign in.
-6. Click **OK**.
+6. **(Optional) Calls device.** Untick *Also switch the communications
+   device* if calls should stay on the device you picked in Windows.
+7. Click **OK**.
 
 ## Daily use
 
@@ -96,6 +111,10 @@ In the Settings window:
   on your list. A toast at the bottom-right of the active monitor
   confirms the switch.
 - **Left-click the tray icon** does the same as pressing the hotkey.
+- **Hover the tray icon** to see the current output — it stays accurate
+  even when Windows or another app changes the device.
+- **Launch `AudioCarousel.exe` again** to bring up Settings of the copy
+  that is already running.
 - **Right-click the tray icon** for the menu:
   - **Your registered devices** — the current one is checked; click any
     other to switch to it directly (offline devices are grayed out)
@@ -108,7 +127,12 @@ In the Settings window:
 ## Configuration and data location
 
 - **Settings file:** `audio-carousel.json` in the same folder as the
-  .exe. Edit it by hand if you like, or just use Settings.
+  .exe. Edit it by hand if you like, or just use Settings. Saves go
+  through a short-lived `audio-carousel.json.tmp`. A file that isn't
+  valid JSON is kept as `audio-carousel.json.bak` and defaults are
+  used; individual bad entries are ignored. If the file can't be read
+  at all (e.g. another program has it locked), the app runs with
+  defaults for that session and never overwrites your file.
 - **Registry:** the only write is to
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` when
   *Start with Windows* is on. Turning it off removes the entry. Only the
@@ -134,6 +158,17 @@ If you skip step 1, you can also clean up later by deleting the
 - x64
 - No admin rights required
 - No .NET runtime required (self-contained build)
+
+## Known limitations
+
+- **Identical device names.** Some drivers (notably NVIDIA HDMI /
+  DisplayPort audio) assign new device IDs after a reboot, so Audio
+  Carousel re-finds devices by name. Two outputs with exactly the same
+  name (e.g. two identical monitors) may swap places in that case —
+  rename one in Windows Sound settings to avoid it.
+- **Reserved hotkeys.** Combinations Windows keeps for itself (such as
+  `Win+L`) can't be registered; Settings tells you when a combination
+  is unavailable.
 
 ## Disclaimer
 
@@ -192,7 +227,9 @@ dotnet format          # fixes whitespace/EOL per .editorconfig
 pwsh ./scripts/publish.ps1
 ```
 
-Output: `publish/AudioCarousel.exe` (~108 MB, self-contained).
+Output: `publish/AudioCarousel.exe` (~111 MB, self-contained). The
+script refuses to run while `publish/AudioCarousel.exe` is running, and
+keeps an existing `publish/audio-carousel.json` across the rebuild.
 
 `scripts/publish.ps1` is the **only** supported way to produce a
 release exe. The flags are deliberately tuned; do not assemble
@@ -201,7 +238,7 @@ release exe. The flags are deliberately tuned; do not assemble
 > **Binary size note.** Windows Forms is incompatible with NativeAOT
 > (`NETSDK1175`), and trimming strips runtime COM interop machinery
 > that `NAudio.CoreAudioApi` depends on. The script therefore uses an
-> untrimmed self-contained JIT single-file publish. The ~108 MB size is
+> untrimmed self-contained JIT single-file publish. The ~111 MB size is
 > the price of "drop the .exe anywhere and run, no .NET runtime
 > needed" — this tradeoff was made deliberately.
 

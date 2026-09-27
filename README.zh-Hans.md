@@ -17,6 +17,7 @@
 - **切换有视觉反馈。** 活动显示器右下角会弹出提示，显示新设备的名称。托盘图标的工具提示也会同步更新。
 - **托盘常驻、鼠标可操作。** 左键点击托盘图标即循环（与热键相同）。右键打开菜单，可在已注册设备列表中直接点击切换，还有循环至下一个、设置、关于、退出。
 - **灵活的热键。** 修饰键组合（`Ctrl+Alt+A`）和可编程键盘 / 宏键盘上常见的 `F13`–`F24` 都支持。
+- **通话设备可以保持不动。** 默认情况下，通话所用的设备（Teams、Discord、Zoom 等）也会一起切换；在设置中取消勾选一项，就能只切换音乐和游戏的输出，通话仍走耳机。
 - **10 种语言界面。** English / 日本語 / 简体中文 / 繁體中文 / Español / Français / Deutsch / Português (Brasil) / Русский / 한국어。根据 Windows 显示语言自动选择，也可以在设置中手动切换。
 - **纯文本 JSON 配置。** 设置保存在与可执行文件同目录的 `audio-carousel.json` 中。用任何文本编辑器打开即可看到完整内容，不必启动界面就能改热键或设备名，可纳入 git 进行版本管理，也能让脚本直接生成或写入。设置界面只是在写同一个文件。
 - **可选随系统启动。** 启用「随 Windows 启动」只会在当前用户的 `HKCU\...\Run` 键写入一行——不需要管理员权限、不创建服务、不创建计划任务。
@@ -25,8 +26,12 @@
 
 ## 下载与运行
 
-1. 从 [Releases](https://github.com/kai-rin/audio-carousel/releases) 页面下载 `AudioCarousel.exe`，放到任意文件夹（如 `C:\Tools\AudioCarousel\`）。
-2. 双击运行。
+1. 从 [Releases](https://github.com/kai-rin/audio-carousel/releases) 页面下载 `AudioCarousel-<版本>-win-x64.zip`，解压到任意文件夹（如 `C:\Tools\AudioCarousel\`）。压缩包内含 `AudioCarousel.exe` 和许可证文件。
+
+   > **（可选）校验下载：** 每个版本都附有 `.sha256` 校验文件，构建过程也经过 GitHub Actions 证明（attestation）：
+   > `gh attestation verify AudioCarousel-<版本>-win-x64.zip --repo kai-rin/audio-carousel`
+
+2. 双击 `AudioCarousel.exe` 运行。
 
    > **首次运行提示：** 由于二进制文件未经签名，Windows SmartScreen 可能会显示「Windows 已保护你的电脑」。点击 **更多信息 → 仍要运行**。或者在启动前右键单击 .exe → **属性** → 勾选 **解除锁定** → **确定**。原因详见下文 *免责声明*。
 
@@ -36,17 +41,20 @@
 
 在设置窗口中：
 
-1. **添加要循环的音频输出设备。** 点击 *添加设备* 从下拉菜单中选择。常见组合：扬声器、耳机、HDMI 电视、蓝牙耳机。两个以上才能体现热键的价值。
-2. **如有需要，调整顺序。** 用 *上移* / *下移* 设定循环顺序。
-3. **设置热键。** 点击热键输入框，按下你想用的键即可（如 `F16`、`Ctrl+Alt+A`、`Win+Shift+S`，选未占用的）。点击 *清除* 可移除。
+1. **添加要循环的音频输出设备。** 点击 *添加设备* 从下拉菜单中选择。常见组合：扬声器、耳机、通过 HDMI/DisplayPort 连接的显示器、蓝牙耳机。两个以上才能体现热键的价值。
+2. **如有需要，调整顺序。** 用 *上移* / *下移*（或 `Ctrl+↑` / `Ctrl+↓`）设定循环顺序；按 `Delete` 删除选中的设备。
+3. **设置热键。** 点击热键输入框（或用 Tab 移过去后按 `Enter`），再按下你想用的键（如 `F16`、`Ctrl+Alt+A`、`Ctrl+Shift+F9`）。`F1`–`F24` 可单独使用；其他按键需要搭配 `Ctrl`、`Alt` 或 `Win`，以免占用日常输入。`Esc` 取消，`Backspace`（或 *清除*）移除热键。
 4. **（可选）界面语言。** 默认 *自动*（跟随 Windows）。也可以手动选择具体语言。
 5. **（可选）随 Windows 启动。** 勾选后，登录时 Audio Carousel 会自动启动。
-6. 点击 **确定**。
+6. **（可选）通话设备。** 如果希望通话保持在 Windows 中选定的设备上，请取消勾选 *同时切换通信设备（用于通话）*。
+7. 点击 **确定**。
 
 ## 日常使用
 
 - **按下热键** 即可在任何应用中将音频跳到列表的下一个设备，活动显示器右下角会弹出提示。
 - **左键点击托盘图标** 与按热键效果相同。
+- **鼠标悬停在托盘图标上** 可查看当前输出设备；即使 Windows 或其他应用更改了设备，也会同步更新。
+- **再次运行 `AudioCarousel.exe`** 会打开正在运行的 Audio Carousel 的设置窗口。
 - **右键点击托盘图标** 打开菜单：
   - **已注册设备列表** — 当前设备带有勾选标记；点击其他设备即可直接切换（离线设备灰显）
   - **循环至下一个** — 与热键相同
@@ -57,7 +65,7 @@
 
 ## 配置与数据位置
 
-- **配置文件：** 与 .exe 同目录的 `audio-carousel.json`。可手动编辑，也可从设置界面修改。
+- **配置文件：** 与 .exe 同目录的 `audio-carousel.json`。可手动编辑，也可从设置界面修改。保存时会经过临时文件 `audio-carousel.json.tmp`。无法解析为 JSON 的文件会备份为 `audio-carousel.json.bak` 并改用默认值；个别无效条目会被忽略。如果文件本身无法读取（例如被其他程序锁定），本次运行会使用默认值，且绝不会覆盖原文件。
 - **注册表：** 仅当启用「随 Windows 启动」时才写入 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`，关闭时会自动删除。只影响当前用户，无需管理员权限。
 - **没有后台服务、没有计划任务、没有遥测。** 程序本体就是这一个 .exe 文件。
 
@@ -75,6 +83,11 @@
 - x64
 - 无需管理员权限
 - 无需 .NET 运行时（自包含构建）
+
+## 已知限制
+
+- **同名设备。** 部分驱动（尤其是 NVIDIA 的 HDMI / DisplayPort 音频）在重启后会重新分配设备 ID，Audio Carousel 因此按名称重新找回设备。若有两个名称完全相同的输出（如两台同型号显示器），它们可能互换位置。在 Windows 声音设置中给其中一个改名即可避免。
+- **系统保留的热键。** `Win+L` 等 Windows 自用的组合无法注册；设置界面会提示该组合不可用。
 
 ## 免责声明
 
@@ -120,11 +133,11 @@ dotnet format          # 按 .editorconfig 规整空白与换行符
 pwsh ./scripts/publish.ps1
 ```
 
-输出：`publish/AudioCarousel.exe`（约 108 MB，自包含）。
+输出：`publish/AudioCarousel.exe`（约 111 MB，自包含）。如果 `publish/AudioCarousel.exe` 正在运行，脚本会报错停止；已有的 `publish/audio-carousel.json` 在重新构建后会保留。
 
 `scripts/publish.ps1` 是生成发布版 exe **唯一支持的方式**。其参数经过精心调校，请不要手动拼装 `dotnet publish` 命令行。
 
-> **关于二进制大小。** Windows Forms 与 NativeAOT 不兼容（`NETSDK1175`），而修剪（trimming）会移除 `NAudio.CoreAudioApi` 依赖的运行时 COM 互操作机制。因此该脚本采用 **未修剪、自包含、JIT、单文件发布**，生成约 108 MB 的可执行文件。这个体积是「将 .exe 放在任何位置即可运行，无需安装 .NET 运行时」的代价，是经过权衡后有意做出的取舍。
+> **关于二进制大小。** Windows Forms 与 NativeAOT 不兼容（`NETSDK1175`），而修剪（trimming）会移除 `NAudio.CoreAudioApi` 依赖的运行时 COM 互操作机制。因此该脚本采用 **未修剪、自包含、JIT、单文件发布**，生成约 111 MB 的可执行文件。这个体积是「将 .exe 放在任何位置即可运行，无需安装 .NET 运行时」的代价，是经过权衡后有意做出的取舍。
 
 ## 项目结构
 
