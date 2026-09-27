@@ -26,6 +26,9 @@ installer, single executable, portable configuration.
   cycle stays short and predictable.
 - **Forward and back.** One hotkey steps to the next device, an
   optional second one steps back to the previous device.
+- **Microphones too.** Keep a separate list of recording devices (e.g.
+  desk mic and headset mic) and switch between them with their own
+  hotkey or from the tray's *Microphone* submenu.
 - **Visual confirmation.** A toast appears at the bottom-right of the
   monitor your mouse is on, showing the new device's name (you can turn
   it off). The tray icon's tooltip always shows the current device.
@@ -105,13 +108,15 @@ In the Settings window:
    a specific language if you prefer.
 5. **(Optional) Start with Windows.** Tick the checkbox to launch Audio
    Carousel automatically when you sign in.
-6. **(Optional) Calls device.** Untick *Also switch the communications
+6. **(Optional) Microphones.** Switch the list to *Recording*, add the
+   microphones you want to cycle, and set a *Next microphone* hotkey.
+7. **(Optional) Calls device.** Untick *Also switch the communications
    device* if calls should stay on the device you picked in Windows.
-7. **(Optional) Toast and left-click.** Turn off the switch
+8. **(Optional) Toast and left-click.** Turn off the switch
    notification, or let a left-click on the tray icon switch devices
    (off by default, so a stray click can't change your audio
    mid-meeting — it opens Settings instead).
-8. Click **OK**. A notification points out the tray icon and how to use
+9. Click **OK**. A notification points out the tray icon and how to use
    it. On Windows 11 new tray icons start in the overflow flyout (the
    `^` next to the clock) — drag it onto the taskbar to keep it
    visible.
@@ -132,6 +137,8 @@ In the Settings window:
   - **Your registered devices** — the current one is checked; click any
     other to switch to it directly (offline devices are grayed out)
   - **Cycle next** / **Previous device** — same as the hotkeys
+  - **Microphone** — your registered microphones and *Next microphone*
+    (shown once you've added microphones)
   - **Settings** — reopen the settings window
   - **Start with Windows** — toggle without opening Settings
   - **About** — version info

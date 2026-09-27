@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey. Single-developer, MIT-licensed.
+Audio Carousel — Windows tray utility that cycles the system default audio output device via a global hotkey (plus an optional, separate microphone list with its own hotkey — `CycleTarget.Input`, `AudioDeviceService(AudioFlow.Capture)`). Single-developer, MIT-licensed.
 
 Spec: `docs/superpowers/specs/2026-04-25-audio-carousel-design.md`
 
