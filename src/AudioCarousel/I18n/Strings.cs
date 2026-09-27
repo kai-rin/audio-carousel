@@ -489,6 +489,17 @@ public static class Strings
             "Use a tecla de atalho do microfone ou clique com o botão direito neste ícone para trocar de microfone.",
             "Используйте сочетание клавиш для микрофона или щёлкните этот значок правой кнопкой, чтобы переключить микрофон.",
             "마이크 단축키를 누르거나 이 아이콘을 마우스 오른쪽 버튼으로 클릭해 마이크를 전환하세요."),
+        ["balloon.inputOnlyMenu"] = M(
+            "Right-click this icon and use the Microphone menu to switch microphones.",
+            "このアイコンを右クリックして「マイク」メニューからマイクを切り替えられます。",
+            "右键点击此图标，在“麦克风”菜单中切换麦克风。",
+            "以滑鼠右鍵按一下此圖示，從「麥克風」選單切換麥克風。",
+            "Haga clic derecho en este icono y use el menú Micrófono para cambiar de micrófono.",
+            "Faites un clic droit sur cette icône et utilisez le menu Microphone pour changer de microphone.",
+            "Klicken Sie mit der rechten Maustaste auf dieses Symbol und wechseln Sie das Mikrofon über das Menü „Mikrofon“.",
+            "Clique com o botão direito neste ícone e use o menu Microfone para trocar de microfone.",
+            "Щёлкните этот значок правой кнопкой и переключите микрофон в меню «Микрофон».",
+            "이 아이콘을 마우스 오른쪽 버튼으로 클릭하고 '마이크' 메뉴에서 마이크를 전환하세요."),
         ["balloon.noHotkey"] = M(
             "Click this icon to switch to the next output. Right-click it for settings.",
             "このアイコンのクリックで次の出力へ切り替えます。設定は右クリック。",
@@ -606,6 +617,10 @@ public static class Strings
         if (entry.TryGetValue(_current, out var s)) return s;
         return entry.TryGetValue(Language.English, out var en) ? en : key;
     }
+
+    /// <summary>Every translation of a key (distinct), e.g. to recognize a word in any language.</summary>
+    public static IEnumerable<string> AllTranslations(string key) =>
+        Table.TryGetValue(key, out var entry) ? entry.Values.Distinct() : Enumerable.Empty<string>();
 
     public static Language ResolveLanguage(string configValue, string currentUiCultureName)
     {

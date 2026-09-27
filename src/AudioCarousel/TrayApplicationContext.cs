@@ -260,7 +260,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             text = Strings.Get("balloon.noDevices");
         else if (_config.Devices.Count == 0)
             // Microphone-only setup: the output hotkey/click wouldn't do anything.
-            text = Strings.Get("balloon.inputOnly");
+            text = Strings.Get(_config.HotkeyInput is null ? "balloon.inputOnlyMenu" : "balloon.inputOnly");
         else if (spec is HotkeySpec s)
             text = string.Format(Strings.Get("balloon.withHotkey"), HotkeyParser.FormatForDisplay(s));
         else if (_config.LeftClickCycles)

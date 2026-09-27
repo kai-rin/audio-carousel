@@ -327,6 +327,9 @@ public class CycleControllerTests
     [InlineData(Language.English, "Microphone (USB Audio)", "Microphone (USB Audio)")]
     [InlineData(Language.Japanese, "マイク (Yeti Nano)", "マイク (Yeti Nano)")]
     [InlineData(Language.Japanese, "Headset", "マイク: Headset")]
+    // Device names follow the Windows display language, not the app's UI language.
+    [InlineData(Language.English, "マイク (Yeti Nano)", "マイク (Yeti Nano)")]
+    [InlineData(Language.German, "Microphone (USB)", "Microphone (USB)")]
     public void MicrophoneLabel_AvoidsDoublePrefix(Language lang, string name, string expected)
     {
         Strings.SetLanguage(lang);

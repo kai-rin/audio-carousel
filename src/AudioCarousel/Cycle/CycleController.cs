@@ -164,12 +164,15 @@ public sealed class CycleController
 
     /// <summary>
     /// "Microphone: X" in the UI language — unless X already starts with the
-    /// localized word, as Windows' own names ("Microphone (...)", "マイク (...)") do.
+    /// word "microphone" in any supported language, as Windows' own names
+    /// ("Microphone (...)", "マイク (...)") do. Device names follow the Windows
+    /// display language, which can differ from the app's.
     /// </summary>
     public static string MicrophoneLabel(string displayName)
     {
-        string word = Strings.Get("tray.microphone");
-        return displayName.StartsWith(word, StringComparison.CurrentCultureIgnoreCase)
+        bool alreadyNamed = Strings.AllTranslations("tray.microphone")
+            .Any(word => displayName.StartsWith(word, StringComparison.CurrentCultureIgnoreCase));
+        return alreadyNamed
             ? displayName
             : string.Format(Strings.Get("toast.microphone"), displayName);
     }
