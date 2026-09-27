@@ -10,6 +10,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   publish:
@@ -17,23 +20,51 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
+
+      # Same gates as ci.yml: a tag must never ship a build that CI would reject.
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+
+      - name: Format check
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Test
+        run: dotnet test --no-restore -c Release -warnaserror
 
       - name: Publish single-file exe
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}" -replace '^v', ''
           ./scripts/publish.ps1 -Version $version
-          Compress-Archive -Path publish/AudioCarousel.exe `
-                           -DestinationPath publish/AudioCarousel-$version-win-x64.zip
+
+          # MIT (ours, .NET runtime, NAudio) requires the notices to travel
+          # with the binary, so the zip carries them next to the exe.
+          $name  = "AudioCarousel-$version-win-x64"
+          $stage = "publish/$name"
+          New-Item -ItemType Directory -Path $stage | Out-Null
+          Copy-Item publish/AudioCarousel.exe, LICENSE, THIRD_PARTY_NOTICES.md -Destination $stage
+          Compress-Archive -Path "$stage/*" -DestinationPath "publish/$name.zip"
+
+          $hash = (Get-FileHash "publish/$name.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $name.zip" | Set-Content -Encoding ascii -NoNewline "publish/$name.zip.sha256"
+
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            publish/AudioCarousel.exe
+            publish/AudioCarousel-*-win-x64.zip
 
       - name: Upload to release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          files: publish/AudioCarousel-*-win-x64.zip
+          files: |
+            publish/AudioCarousel-*-win-x64.zip
+            publish/AudioCarousel-*-win-x64.zip.sha256
           generate_release_notes: true
