@@ -31,8 +31,10 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         string configPath = Path.Combine(_exeDir, "audio-carousel.json");
 
         _store = new ConfigStore(configPath);
-        bool wasCorrupted;
-        (_config, _freshlyCreated, wasCorrupted) = _store.Load();
+        var load = _store.Load();
+        _config = load.Config;
+        _freshlyCreated = load.FreshlyCreated;
+        bool wasCorrupted = load.WasCorrupted;
 
         // Apply language.
         Strings.SetLanguage(Strings.ResolveLanguage(_config.Language, Strings.GetCurrentUiCultureName()));

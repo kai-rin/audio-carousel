@@ -6,30 +6,45 @@ public sealed class ConfigStore
 {
     private readonly string _path;
     private readonly object _lock = new();
+    private bool _saveBlocked;
 
     public ConfigStore(string path)
     {
         _path = path;
     }
 
-    public (ConfigSchema config, bool freshlyCreated, bool wasCorrupted) Load()
+    public ConfigLoadResult Load()
     {
         lock (_lock)
         {
+            _saveBlocked = false;
+
             if (!File.Exists(_path))
             {
                 var defaults = new ConfigSchema();
                 TrySaveInternal(defaults);
-                return (defaults, true, false);
+                return new ConfigLoadResult(defaults, FreshlyCreated: true, WasCorrupted: false, WasUnreadable: false);
+            }
+
+            string json;
+            try
+            {
+                json = ReadWithRetry(_path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Not corruption: leave the file alone and refuse to save the
+                // in-memory defaults over it.
+                _saveBlocked = true;
+                return new ConfigLoadResult(new ConfigSchema(), FreshlyCreated: false, WasCorrupted: false, WasUnreadable: true);
             }
 
             try
             {
-                string json = File.ReadAllText(_path);
                 var loaded = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.ConfigSchema);
                 if (loaded is null) throw new InvalidDataException("config deserialized to null");
-                ClampCurrentIndex(loaded);
-                return (loaded, false, false);
+                Normalize(loaded);
+                return new ConfigLoadResult(loaded, FreshlyCreated: false, WasCorrupted: false, WasUnreadable: false);
             }
             catch (Exception)
             {
@@ -42,7 +57,7 @@ public sealed class ConfigStore
                 catch { /* best-effort backup; still recover with defaults */ }
                 var defaults = new ConfigSchema();
                 TrySaveInternal(defaults);
-                return (defaults, true, true);
+                return new ConfigLoadResult(defaults, FreshlyCreated: true, WasCorrupted: true, WasUnreadable: false);
             }
         }
     }
@@ -51,6 +66,9 @@ public sealed class ConfigStore
     {
         lock (_lock)
         {
+            if (_saveBlocked)
+                throw new InvalidOperationException(
+                    $"Config file '{_path}' could not be read at startup; saving is blocked to avoid overwriting it with defaults.");
             ClampCurrentIndex(config);
             SaveInternal(config);
         }
@@ -71,7 +89,15 @@ public sealed class ConfigStore
         string json = JsonSerializer.Serialize(config, ConfigJsonContext.Default.ConfigSchema);
         try
         {
-            File.WriteAllText(tmp, json);
+            // Flush to disk before the replace so a power loss cannot leave a
+            // zero-length config behind.
+            using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(fs))
+            {
+                writer.Write(json);
+                writer.Flush();
+                fs.Flush(flushToDisk: true);
+            }
             ReplaceWithRetry(tmp, _path);
         }
         catch
@@ -107,6 +133,58 @@ public sealed class ConfigStore
                 Thread.Sleep(40 * attempt);
             }
         }
+    }
+
+    // Same transient-lock tolerance as ReplaceWithRetry, for reads.
+    private static string ReadWithRetry(string path)
+    {
+        const int maxAttempts = 5;
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return File.ReadAllText(path);
+            }
+            catch (IOException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(40 * attempt);
+            }
+            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(40 * attempt);
+            }
+        }
+    }
+
+    // System.Text.Json does not enforce non-null annotations, so a hand-edited
+    // file can carry nulls anywhere. Repair them in place.
+    public static void Normalize(ConfigSchema config)
+    {
+        if (string.IsNullOrWhiteSpace(config.Language))
+            config.Language = "auto";
+
+        var devices = new List<DeviceEntry>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var device in config.Devices ?? new List<DeviceEntry>())
+        {
+            if (device is null) continue;
+            device.EndpointId ??= "";
+            device.DisplayName ??= "";
+            if (device.EndpointId.Length == 0 && device.DisplayName.Length == 0) continue;
+            if (device.EndpointId.Length > 0 && !seenIds.Add(device.EndpointId)) continue;
+            devices.Add(device);
+        }
+        config.Devices = devices;
+
+        if (config.Hotkey is not null)
+        {
+            if (config.Hotkey.Key is null || config.Hotkey.Modifiers is null)
+                config.Hotkey = null;
+            else
+                config.Hotkey.Modifiers.RemoveAll(m => m is null);
+        }
+
+        ClampCurrentIndex(config);
     }
 
     private static void ClampCurrentIndex(ConfigSchema config)
