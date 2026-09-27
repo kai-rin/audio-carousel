@@ -33,14 +33,18 @@ public class CycleControllerTests
         return (controller, audio, sink, cfg, saves);
     }
 
+    // Pressing the hotkey before adding any device must explain itself
+    // instead of silently doing nothing.
     [Fact]
-    public void Cycle_EmptyDevices_DoesNothing()
+    public void Cycle_EmptyDevices_ShowsHowToAddDevices()
     {
-        var (c, a, s, _, _) = Build();
+        var (c, a, s, _, saves) = Build();
         c.Cycle();
         Assert.Empty(a.SetCalls);
         Assert.Empty(s.Toasts);
-        Assert.Empty(s.ErrorToasts);
+        Assert.Single(s.ErrorToasts);
+        Assert.Equal(Strings.Get("error.noDevicesConfigured"), s.ErrorToasts[0]);
+        Assert.Equal(0, saves.Count);
     }
 
     [Fact]

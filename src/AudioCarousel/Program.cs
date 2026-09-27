@@ -16,6 +16,9 @@ internal static partial class Program
     {
         // DPI mode and visual styles come from the csproj (ApplicationHighDpiMode).
         ApplicationConfiguration.Initialize();
+        // Follow the Windows light/dark app theme (Windows 11; ignored under
+        // high contrast, where the system colors apply as before).
+        Application.SetColorMode(SystemColorMode.System);
 
         using var mutex = new Mutex(initiallyOwned: true, MutexName, out bool createdNew);
         if (!createdNew)

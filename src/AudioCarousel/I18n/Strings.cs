@@ -276,6 +276,17 @@ public static class Strings
             "No hay dispositivos de audio registrados disponibles", "Aucun périphérique audio enregistré disponible",
             "Kein registriertes Audiogerät verfügbar", "Nenhum dispositivo de áudio registrado disponível",
             "Нет доступных зарегистрированных аудиоустройств", "사용 가능한 등록된 오디오 장치가 없습니다"),
+        ["error.noDevicesConfigured"] = M(
+            "No devices to cycle yet — right-click the tray icon and open Settings to add some",
+            "切替デバイスが未登録です — トレイアイコンを右クリックして設定から追加してください",
+            "尚未添加要切换的设备 — 请右键点击托盘图标，在设置中添加",
+            "尚未新增要切換的裝置 — 請以滑鼠右鍵按一下系統匣圖示，在設定中新增",
+            "Aún no hay dispositivos en el ciclo: haga clic derecho en el icono de la bandeja y abra Configuración",
+            "Aucun périphérique à parcourir : faites un clic droit sur l'icône et ouvrez Paramètres",
+            "Noch keine Geräte im Wechsel – Rechtsklick auf das Taskleistensymbol und Einstellungen öffnen",
+            "Nenhum dispositivo no ciclo ainda — clique com o botão direito no ícone da bandeja e abra Configurações",
+            "Устройства для переключения не добавлены — щёлкните значок в трее правой кнопкой и откройте настройки",
+            "순환할 장치가 없습니다 — 트레이 아이콘을 마우스 오른쪽 버튼으로 클릭해 설정에서 추가하세요"),
         ["error.configCorrupted"] = M(
             "Configuration file was corrupted. A backup was saved as audio-carousel.json.bak and defaults are now in use.",
             "設定ファイルが破損していました。audio-carousel.json.bakにバックアップを保存し、デフォルト設定で起動します。",

@@ -30,7 +30,11 @@ public sealed class CycleController
 
     public void Cycle()
     {
-        if (_config.Devices.Count == 0) return;
+        if (_config.Devices.Count == 0)
+        {
+            _sink.ShowErrorToast(Strings.Get("error.noDevicesConfigured"));
+            return;
+        }
 
         var live = _audio.EnumerateActiveOutputs();
         // Heal before building the available set and before the sync below, so a
