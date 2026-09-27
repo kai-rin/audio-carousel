@@ -15,7 +15,7 @@ public class StringsTests
     public void Get_DefaultsToEnglish()
     {
         Strings.SetLanguage(Language.English);
-        Assert.Equal("Cycle next", Strings.Get("tray.cycleNext"));
+        Assert.Equal("Next device", Strings.Get("tray.cycleNext"));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class StringsTests
     }
 
     [Theory]
-    [InlineData(Language.English, "Cycle next")]
+    [InlineData(Language.English, "Next device")]
     [InlineData(Language.Japanese, "次のデバイスへ")]
     [InlineData(Language.ChineseSimplified, "切换到下一个设备")]
     [InlineData(Language.ChineseTraditional, "切換到下一個裝置")]

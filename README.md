@@ -39,7 +39,7 @@ installer, single executable, portable configuration.
 - **Tray-resident, mouse-friendly.** A left-click on the tray icon opens
   Settings, or — if you turn it on — cycles like the hotkey. Right-click
   for a menu that lists your devices — click one to switch to it
-  directly, plus Cycle next / previous, Settings, About, Exit.
+  directly, plus Next / Previous device, Settings, About, Exit.
 - **Flexible hotkeys.** Modifier combinations (`Ctrl+Alt+A`) and the
   rarely-used function keys (`F13`–`F24`, common on programmable
   keyboards and macro pads) all work.
@@ -138,7 +138,7 @@ In the Settings window:
 - **Right-click the tray icon** for the menu:
   - **Your registered devices** — the current one is checked; click any
     other to switch to it directly (offline devices are grayed out)
-  - **Cycle next** / **Previous device** — same as the hotkeys
+  - **Next device** / **Previous device** — same as the hotkeys
   - **Microphone** — your registered microphones and *Next microphone*
     (shown once you've added microphones)
   - **Settings** — reopen the settings window

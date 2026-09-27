@@ -66,7 +66,7 @@ public static class Strings
             "(kein Gerät ausgewählt)", "(nenhum dispositivo selecionado)",
             "(устройство не выбрано)", "(장치가 선택되지 않음)"),
         ["tray.cycleNext"] = M(
-            "Cycle next", "次のデバイスへ",
+            "Next device", "次のデバイスへ",
             "切换到下一个设备", "切換到下一個裝置",
             "Siguiente dispositivo", "Périphérique suivant",
             "Nächstes Gerät", "Próximo dispositivo",
