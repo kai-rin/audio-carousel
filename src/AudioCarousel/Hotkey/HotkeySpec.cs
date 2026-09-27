@@ -13,3 +13,12 @@ public enum HotkeyModifier
 }
 
 public readonly record struct HotkeySpec(HotkeyModifier Modifiers, Keys Key);
+
+public enum HotkeyValidation
+{
+    Ok,
+    // No Ctrl/Alt/Win on a non-function key: registering it would swallow typing.
+    NeedsModifier,
+    // Key the capture UI itself uses (Esc cancels capture).
+    Reserved,
+}

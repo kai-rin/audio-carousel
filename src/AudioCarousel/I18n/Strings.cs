@@ -102,17 +102,23 @@ public static class Strings
             "Tastenkombination:", "Tecla de atalho:",
             "Сочетание клавиш:", "단축키:"),
         ["settings.hotkeyHint"] = M(
-            "(Click and press a key combination)", "(クリックしてキーを押してください)",
-            "（点击后按下组合键）", "（點擊後按下組合鍵）",
-            "(Haga clic y pulse una combinación de teclas)", "(Cliquez et appuyez sur une combinaison de touches)",
-            "(Klicken und Tastenkombination drücken)", "(Clique e pressione uma combinação de teclas)",
-            "(Нажмите и введите сочетание клавиш)", "(클릭 후 키 조합을 누르세요)"),
+            "(Click (or press Enter) and press a key combination)", "(クリック（または Enter）してからキーを押してください)",
+            "（点击（或按 Enter）后按下组合键）", "（點擊（或按 Enter）後按下組合鍵）",
+            "(Haga clic (o pulse Intro) y pulse una combinación de teclas)", "(Cliquez (ou appuyez sur Entrée), puis sur une combinaison de touches)",
+            "(Klicken (oder Eingabetaste drücken) und Tastenkombination drücken)", "(Clique (ou pressione Enter) e pressione uma combinação de teclas)",
+            "(Щёлкните (или нажмите Enter) и введите сочетание клавиш)", "(클릭(또는 Enter) 후 키 조합을 누르세요)"),
         ["settings.hotkeyCapturing"] = M(
-            "Press a key combination... (Esc cancels)", "キー組み合わせを押してください... (Escでキャンセル)",
-            "按下组合键...（Esc 取消）", "按下組合鍵...（Esc 取消）",
-            "Pulse una combinación de teclas... (Esc cancela)", "Appuyez sur une combinaison de touches... (Échap annule)",
-            "Tastenkombination drücken... (Esc bricht ab)", "Pressione uma combinação de teclas... (Esc cancela)",
-            "Нажмите сочетание клавиш... (Esc — отмена)", "키 조합을 누르세요... (Esc로 취소)"),
+            "Press a key combination... (Esc: cancel, Backspace: clear)", "キー組み合わせを押してください... (Esc: キャンセル / Backspace: クリア)",
+            "按下组合键...（Esc：取消，Backspace：清除）", "按下組合鍵...（Esc：取消，Backspace：清除）",
+            "Pulse una combinación de teclas... (Esc: cancelar, Retroceso: borrar)", "Appuyez sur une combinaison de touches... (Échap : annuler, Retour arrière : effacer)",
+            "Tastenkombination drücken... (Esc: abbrechen, Rücktaste: löschen)", "Pressione uma combinação de teclas... (Esc: cancelar, Backspace: limpar)",
+            "Нажмите сочетание клавиш... (Esc — отмена, Backspace — очистить)", "키 조합을 누르세요... (Esc: 취소, Backspace: 지우기)"),
+        ["settings.hotkeyNeedsModifier"] = M(
+            "Add Ctrl, Alt or Win — or use F1–F24", "Ctrl・Alt・Win と組み合わせるか、F1～F24 を使ってください",
+            "请加上 Ctrl、Alt 或 Win，或使用 F1–F24", "請加上 Ctrl、Alt 或 Win，或使用 F1–F24",
+            "Añada Ctrl, Alt o Win, o use F1–F24", "Ajoutez Ctrl, Alt ou Win, ou utilisez F1–F24",
+            "Strg, Alt oder Win hinzufügen – oder F1–F24 verwenden", "Adicione Ctrl, Alt ou Win, ou use F1–F24",
+            "Добавьте Ctrl, Alt или Win либо используйте F1–F24", "Ctrl, Alt, Win 중 하나를 함께 누르거나 F1–F24를 사용하세요"),
         ["settings.hotkeyClear"] = M(
             "Clear", "クリア",
             "清除", "清除",
@@ -206,6 +212,12 @@ public static class Strings
             "(keine neuen Geräte verfügbar)", "(nenhum dispositivo novo disponível)",
             "(новых устройств нет)", "(추가 가능한 새 장치가 없습니다)"),
 
+        // Modifier key names as printed on keyboards (German layouts label them "Strg" / "Umschalt").
+        ["key.ctrl"] = M("Ctrl", "Ctrl", "Ctrl", "Ctrl", "Ctrl", "Ctrl", "Strg", "Ctrl", "Ctrl", "Ctrl"),
+        ["key.alt"] = M("Alt", "Alt", "Alt", "Alt", "Alt", "Alt", "Alt", "Alt", "Alt", "Alt"),
+        ["key.shift"] = M("Shift", "Shift", "Shift", "Shift", "Shift", "Shift", "Umschalt", "Shift", "Shift", "Shift"),
+        ["key.win"] = M("Win", "Win", "Win", "Win", "Win", "Win", "Win", "Win", "Win", "Win"),
+
         ["error.alreadyRunning"] = M(
             "Audio Carousel is already running.", "Audio Carouselはすでに起動しています。",
             "Audio Carousel 已在运行。", "Audio Carousel 已在執行中。",
@@ -218,6 +230,12 @@ public static class Strings
             "La tecla rápida ya está en uso por otra aplicación.", "Le raccourci est déjà utilisé par une autre application.",
             "Die Tastenkombination wird bereits von einer anderen Anwendung verwendet.", "A tecla de atalho já está em uso por outro aplicativo.",
             "Сочетание клавиш уже используется другим приложением.", "다른 응용 프로그램이 이 단축키를 이미 사용하고 있습니다."),
+        ["error.hotkeyInvalid"] = M(
+            "This key combination can't be used as a global hotkey.", "このキーの組み合わせはグローバルホットキーとして使用できません。",
+            "此组合键无法用作全局热键。", "此組合鍵無法作為全域快速鍵使用。",
+            "Esta combinación de teclas no se puede usar como tecla rápida global.", "Cette combinaison de touches ne peut pas être utilisée comme raccourci global.",
+            "Diese Tastenkombination kann nicht als globales Tastenkürzel verwendet werden.", "Esta combinação de teclas não pode ser usada como tecla de atalho global.",
+            "Это сочетание клавиш нельзя использовать как глобальное.", "이 키 조합은 전역 단축키로 사용할 수 없습니다."),
         ["error.switchFailed"] = M(
             "Failed to switch device", "デバイス切替に失敗しました",
             "切换设备失败", "切換裝置失敗",

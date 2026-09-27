@@ -3,13 +3,22 @@ using System.Windows.Forms;
 
 namespace AudioCarousel.Hotkey;
 
-public sealed class HotkeyHost : IDisposable
+public enum HotkeyRegisterResult
+{
+    Ok,
+    // Another application (or another hotkey of ours) already owns the combination.
+    InUse,
+    Failed,
+}
+
+public sealed partial class HotkeyHost : IDisposable
 {
     private const int WM_HOTKEY = 0x0312;
     private const int HOTKEY_ID = 1;
     // Suppress keyboard auto-repeat: holding the hotkey down must fire once,
     // not cycle devices repeatedly.
     private const uint MOD_NOREPEAT = 0x4000;
+    private const int ERROR_HOTKEY_ALREADY_REGISTERED = 1409;
 
     private readonly MessageOnlyWindow _window;
     private bool _registered;
@@ -20,13 +29,16 @@ public sealed class HotkeyHost : IDisposable
         _window = new MessageOnlyWindow(OnMessage);
     }
 
-    public bool TryRegister(HotkeySpec spec, Action onHotkey)
+    public HotkeyRegisterResult TryRegister(HotkeySpec spec, Action onHotkey)
     {
         Unregister();
         _onHotkey = onHotkey;
         bool ok = RegisterHotKey(_window.Handle, HOTKEY_ID, (uint)spec.Modifiers | MOD_NOREPEAT, (uint)spec.Key);
         _registered = ok;
-        return ok;
+        if (ok) return HotkeyRegisterResult.Ok;
+        return Marshal.GetLastPInvokeError() == ERROR_HOTKEY_ALREADY_REGISTERED
+            ? HotkeyRegisterResult.InUse
+            : HotkeyRegisterResult.Failed;
     }
 
     public void Unregister()
@@ -51,11 +63,13 @@ public sealed class HotkeyHost : IDisposable
         _window.DestroyHandle();
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool UnregisterHotKey(IntPtr hWnd, int id);
 
     private sealed class MessageOnlyWindow : NativeWindow
     {

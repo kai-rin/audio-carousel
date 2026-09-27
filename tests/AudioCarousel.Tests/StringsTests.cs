@@ -64,6 +64,25 @@ public class StringsTests
         Strings.SetLanguage(Language.English);
     }
 
+    [Theory]
+    [InlineData("key.ctrl")]
+    [InlineData("key.alt")]
+    [InlineData("key.shift")]
+    [InlineData("key.win")]
+    [InlineData("error.hotkeyInvalid")]
+    [InlineData("settings.hotkeyNeedsModifier")]
+    public void Get_HotkeyKeys_HaveTranslationInEveryLanguage(string key)
+    {
+        foreach (Language lang in Enum.GetValues<Language>())
+        {
+            Strings.SetLanguage(lang);
+            string text = Strings.Get(key);
+            Assert.NotEqual(key, text); // key resolved
+            Assert.False(string.IsNullOrWhiteSpace(text));
+        }
+        Strings.SetLanguage(Language.English);
+    }
+
     [Fact]
     public void Get_LanguageSelfNames_AreSameAcrossAllLanguages()
     {

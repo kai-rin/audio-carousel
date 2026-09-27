@@ -151,7 +151,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     private bool ProbeHotkey(HotkeySpec spec)
     {
         // Try to register; if success, we re-apply from config in the OK path anyway.
-        bool ok = _hotkeyHost.TryRegister(spec, () => _cycle.Cycle());
+        bool ok = _hotkeyHost.TryRegister(spec, () => _cycle.Cycle()) == HotkeyRegisterResult.Ok;
         if (!ok)
         {
             // Re-apply previous registration so we don't end up with no hotkey.
@@ -168,9 +168,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _hotkeyHost.Unregister();
             return;
         }
-        if (!_hotkeyHost.TryRegister(spec.Value, () => _cycle.Cycle()))
+        var result = _hotkeyHost.TryRegister(spec.Value, () => _cycle.Cycle());
+        if (result != HotkeyRegisterResult.Ok)
         {
-            MessageBox.Show(Strings.Get("error.hotkeyInUse"),
+            string messageKey = result == HotkeyRegisterResult.InUse ? "error.hotkeyInUse" : "error.hotkeyInvalid";
+            MessageBox.Show(Strings.Get(messageKey),
                 Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
