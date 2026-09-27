@@ -36,6 +36,11 @@ if (Test-Path $ConfigPath) {
 
 if (Test-Path $PublishDir) { Remove-Item -Recurse -Force $PublishDir }
 
+# A publish-mode restore rewrites packages.lock.json with ILLink + win-x64
+# entries that break CI's --locked-mode (NU1004). Put the file back afterwards.
+$LockFile  = Join-Path $ProjectRoot 'src\AudioCarousel\packages.lock.json'
+$savedLock = [IO.File]::ReadAllBytes($LockFile)
+
 $extra = @()
 if ($Version) { $extra += "-p:Version=$Version" }
 
@@ -49,9 +54,11 @@ dotnet publish (Join-Path $ProjectRoot 'src\AudioCarousel\AudioCarousel.csproj')
   -p:IncludeNativeLibrariesForSelfExtract=true `
   @extra `
   -o $PublishDir
-if ($LASTEXITCODE -ne 0) {
+$publishExit = $LASTEXITCODE
+[IO.File]::WriteAllBytes($LockFile, $savedLock)
+if ($publishExit -ne 0) {
   if ($savedConfig) { Write-Warning "Publish failed; your config was kept at $savedConfig" }
-  exit $LASTEXITCODE
+  exit $publishExit
 }
 
 # The .pdb is not shipped (release.yml zips only the exe); keep publish/ clean.
