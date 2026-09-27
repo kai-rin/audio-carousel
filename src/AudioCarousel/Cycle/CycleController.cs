@@ -157,8 +157,21 @@ public sealed class CycleController
         CurrentIndex = targetIndex;
         _persistConfig();
         // Mark microphone switches so they can't be mistaken for output ones.
-        _sink.ShowToast(_target == CycleTarget.Input ? "\U0001F3A4 " + target.DisplayName : target.DisplayName);
+        // (Plain text, not an emoji: the toast draws with GDI, which has no color glyphs.)
+        _sink.ShowToast(_target == CycleTarget.Input ? MicrophoneLabel(target.DisplayName) : target.DisplayName);
         _sink.NotifyCurrentDeviceChanged();
+    }
+
+    /// <summary>
+    /// "Microphone: X" in the UI language — unless X already starts with the
+    /// localized word, as Windows' own names ("Microphone (...)", "マイク (...)") do.
+    /// </summary>
+    public static string MicrophoneLabel(string displayName)
+    {
+        string word = Strings.Get("tray.microphone");
+        return displayName.StartsWith(word, StringComparison.CurrentCultureIgnoreCase)
+            ? displayName
+            : string.Format(Strings.Get("toast.microphone"), displayName);
     }
 
     // Best-effort: put already-switched roles back so a partial failure

@@ -156,7 +156,7 @@ public sealed class TrayIcon : IDisposable
             ? Strings.Get("app.title")
             : $"{Strings.Get("app.title")} — {Truncate(deviceName, 50)}";
         if (inputName is not null)
-            text += "\n\U0001F3A4 " + Truncate(inputName, 50);
+            text += "\n" + Cycle.CycleController.MicrophoneLabel(Truncate(inputName, 50));
         // NotifyIcon.Text is limited to 127 characters.
         _notifyIcon.Text = Truncate(text, 127);
     }

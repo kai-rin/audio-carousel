@@ -110,8 +110,10 @@ In the Settings window:
    Carousel automatically when you sign in.
 6. **(Optional) Microphones.** Switch the list to *Recording*, add the
    microphones you want to cycle, and set a *Next microphone* hotkey.
+   The calls option below applies to microphones as well.
 7. **(Optional) Calls device.** Untick *Also switch the communications
-   device* if calls should stay on the device you picked in Windows.
+   devices used for calls* if calls should stay on the devices you picked
+   in Windows.
 8. **(Optional) Toast and left-click.** Turn off the switch
    notification, or let a left-click on the tray icon switch devices
    (off by default, so a stray click can't change your audio

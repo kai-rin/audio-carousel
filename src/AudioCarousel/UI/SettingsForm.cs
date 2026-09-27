@@ -112,6 +112,7 @@ public sealed class SettingsForm : Form
         _playbackTab = NewTab("settings.tabPlayback");
         _recordingTab = NewTab("settings.tabRecording");
         _playbackTab.Checked = true;
+        MarkSelectedTab();
         tabs.Controls.AddRange(new Control[] { _playbackTab, _recordingTab });
         root.Controls.Add(tabs);
         _devicesHint = AddHint(Strings.Get("settings.devicesHint"), topMargin: 6);
@@ -313,11 +314,20 @@ public sealed class SettingsForm : Form
     private List<DeviceEntry> CurrentList => _editingInput ? _workingCopy.InputDevices : _workingCopy.Devices;
     private IAudioDeviceService CurrentAudio => _editingInput ? _inputAudio : _audio;
 
+    // Button-style radios barely differ when checked in dark mode; bold the
+    // selected one so it's obvious which list is being edited.
+    private void MarkSelectedTab()
+    {
+        _playbackTab.Font = _playbackTab.Checked ? _boldFont : _baseFont;
+        _recordingTab.Font = _recordingTab.Checked ? _boldFont : _baseFont;
+    }
+
     private void SwitchList(bool input)
     {
         if (_editingInput == input) return;
         _editingInput = input;
         _devicesHint.Text = Strings.Get(input ? "settings.inputDevicesHint" : "settings.devicesHint");
+        MarkSelectedTab();
         RefreshDevicesList(selectIndex: InitialSelection());
     }
 
@@ -616,12 +626,13 @@ public sealed class SettingsForm : Form
         // nothing useful, so make sure that's intended.
         if (_isFirstRun)
         {
-            if (_workingCopy.Devices.Count == 0 && !Confirm("settings.confirmNoDevices"))
+            bool anyDevices = _workingCopy.Devices.Count > 0 || _workingCopy.InputDevices.Count > 0;
+            if (!anyDevices && !Confirm("settings.confirmNoDevices"))
             {
                 _addBtn.Focus();
                 return;
             }
-            if (_workingCopy.Devices.Count > 0 && next is null && prev is null && !Confirm("settings.confirmNoHotkey"))
+            if (anyDevices && next is null && prev is null && input is null && !Confirm("settings.confirmNoHotkey"))
             {
                 _nextBox.Focus();
                 return;

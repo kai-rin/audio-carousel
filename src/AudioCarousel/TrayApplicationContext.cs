@@ -256,8 +256,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     {
         var spec = HotkeyParser.FromConfigEntry(_config.Hotkey);
         string text;
-        if (_config.Devices.Count == 0)
+        if (_config.Devices.Count == 0 && _config.InputDevices.Count == 0)
             text = Strings.Get("balloon.noDevices");
+        else if (_config.Devices.Count == 0)
+            // Microphone-only setup: the output hotkey/click wouldn't do anything.
+            text = Strings.Get("balloon.inputOnly");
         else if (spec is HotkeySpec s)
             text = string.Format(Strings.Get("balloon.withHotkey"), HotkeyParser.FormatForDisplay(s));
         else if (_config.LeftClickCycles)

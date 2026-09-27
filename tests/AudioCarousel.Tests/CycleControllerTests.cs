@@ -320,6 +320,20 @@ public class CycleControllerTests
         Assert.Contains("Mic 2", sink.Toasts[^1]);
     }
 
+    // Windows already names most microphones "Microphone (...)" / "マイク (...)";
+    // don't print "Microphone: Microphone (...)".
+    [Theory]
+    [InlineData(Language.English, "Yeti Nano", "Microphone: Yeti Nano")]
+    [InlineData(Language.English, "Microphone (USB Audio)", "Microphone (USB Audio)")]
+    [InlineData(Language.Japanese, "マイク (Yeti Nano)", "マイク (Yeti Nano)")]
+    [InlineData(Language.Japanese, "Headset", "マイク: Headset")]
+    public void MicrophoneLabel_AvoidsDoublePrefix(Language lang, string name, string expected)
+    {
+        Strings.SetLanguage(lang);
+        Assert.Equal(expected, CycleController.MicrophoneLabel(name));
+        Strings.SetLanguage(Language.English);
+    }
+
     [Fact]
     public void InputTarget_Empty_ShowsInputSpecificHint()
     {
