@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Windows.Forms.Automation;
 
 namespace AudioCarousel.UI;
 
@@ -9,15 +10,26 @@ public sealed class ToastWindow : Form
 {
     private const int FadeMs = 200;
     private const int HoldMs = 1500;
+    private const int TickMs = 16;
+
+    // Layout in 96-DPI units; scaled to the target monitor's DPI on each show.
     private const int EdgeMargin = 16;
     private const int PadX = 24;
     private const int PadY = 14;
     private const int MaxWidth = 600;
+    private const int CornerRadius = 8;
+    private const float FontPx = 16f; // 12pt at 96 DPI
+
+    private static readonly Color NormalBack = Color.FromArgb(28, 28, 30);
+    private static readonly Color ErrorBack = Color.FromArgb(120, 28, 28);
 
     private readonly System.Windows.Forms.Timer _holdTimer;
     private readonly System.Windows.Forms.Timer _fadeTimer;
     private string _text = "";
     private FadeState _state = FadeState.Hidden;
+    private Font? _font;
+    private int _padX = PadX;
+    private int _padY = PadY;
 
     private enum FadeState { Hidden, FadingIn, Holding, FadingOut }
 
@@ -27,16 +39,17 @@ public sealed class ToastWindow : Form
         ShowInTaskbar = false;
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
+        AutoScaleMode = AutoScaleMode.None;
         DoubleBuffered = true;
         Opacity = 0;
-        BackColor = Color.FromArgb(28, 28, 30);
+        BackColor = NormalBack;
         ForeColor = Color.White;
-        Font = new Font("Segoe UI", 12f, FontStyle.Regular, GraphicsUnit.Point);
+        AccessibleRole = AccessibleRole.Alert;
 
         _holdTimer = new System.Windows.Forms.Timer { Interval = HoldMs };
         _holdTimer.Tick += (_, _) => { _holdTimer.Stop(); StartFadeOut(); };
 
-        _fadeTimer = new System.Windows.Forms.Timer { Interval = 16 };
+        _fadeTimer = new System.Windows.Forms.Timer { Interval = TickMs };
         _fadeTimer.Tick += FadeTick;
     }
 
@@ -55,9 +68,9 @@ public sealed class ToastWindow : Form
     public void ShowMessage(string text, bool isError = false)
     {
         _text = text;
-        BackColor = isError ? Color.FromArgb(120, 28, 28) : Color.FromArgb(28, 28, 30);
-        AdjustSize();
-        PositionOnActiveMonitor();
+        AccessibleName = text;
+        BackColor = isError ? ErrorBack : NormalBack;
+        LayoutOnActiveMonitor();
 
         if (_state == FadeState.Hidden)
         {
@@ -76,24 +89,54 @@ public sealed class ToastWindow : Form
             _holdTimer.Start();
             Invalidate();
         }
+
+        // The toast never takes focus, so screen readers would not notice it
+        // without an explicit UIA notification.
+        AccessibilityObject.RaiseAutomationNotification(
+            AutomationNotificationKind.Other,
+            AutomationNotificationProcessing.ImportantMostRecent,
+            text);
     }
 
-    private void AdjustSize()
+    private void LayoutOnActiveMonitor()
     {
-        using var g = CreateGraphics();
-        var size = g.MeasureString(_text, Font);
-        int width = Math.Min(MaxWidth, (int)Math.Ceiling(size.Width) + PadX * 2);
-        int height = (int)Math.Ceiling(size.Height) + PadY * 2;
-        Size = new Size(width, height);
+        var cursor = Cursor.Position;
+        var work = Screen.FromPoint(cursor).WorkingArea;
+        float scale = GetDpiForPoint(cursor) / 96f;
+
+        var oldFont = _font;
+        _font = new Font("Segoe UI", FontPx * scale, FontStyle.Regular, GraphicsUnit.Pixel);
+        Font = _font;
+        oldFont?.Dispose();
+
+        _padX = (int)Math.Round(PadX * scale);
+        _padY = (int)Math.Round(PadY * scale);
+        int maxWidth = (int)Math.Round(MaxWidth * scale);
+        int margin = (int)Math.Round(EdgeMargin * scale);
+
+        // Measure with the same GDI text engine used for drawing so the
+        // computed width never truncates the text it was measured for.
+        var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
+        var size = TextRenderer.MeasureText(_text, _font, new Size(int.MaxValue, int.MaxValue), flags);
+        int width = Math.Min(maxWidth, size.Width + _padX * 2);
+        int height = size.Height + _padY * 2;
+
+        SetBounds(work.Right - width - margin, work.Bottom - height - margin, width, height);
+
+        // Clip the window itself to the rounded shape; painting a rounded
+        // rectangle on a same-colored rectangular window shows no corners.
+        using var path = RoundedRect(new Rectangle(0, 0, width, height), (int)Math.Round(CornerRadius * scale));
+        var oldRegion = Region;
+        Region = new Region(path);
+        oldRegion?.Dispose();
     }
 
-    private void PositionOnActiveMonitor()
+    // Layout is recomputed for the target monitor on every show; don't let
+    // WinForms resize the window to its own suggestion when it crosses DPIs.
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
     {
-        var screen = Screen.FromPoint(Cursor.Position);
-        var work = screen.WorkingArea;
-        Location = new Point(
-            work.Right - Width - EdgeMargin,
-            work.Bottom - Height - EdgeMargin);
+        e.Cancel = true;
+        base.OnDpiChanged(e);
     }
 
     private void StartFadeOut()
@@ -104,7 +147,7 @@ public sealed class ToastWindow : Form
 
     private void FadeTick(object? sender, EventArgs e)
     {
-        double step = 16.0 / FadeMs;
+        double step = (double)TickMs / FadeMs;
         switch (_state)
         {
             case FadeState.FadingIn:
@@ -130,17 +173,10 @@ public sealed class ToastWindow : Form
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-        using var path = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), 8);
-        using var bg = new SolidBrush(BackColor);
-        g.FillPath(bg, path);
-
-        var rect = new Rectangle(PadX, PadY, Width - PadX * 2, Height - PadY * 2);
-        TextRenderer.DrawText(g, _text, Font, rect, ForeColor,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        var rect = new Rectangle(_padX, _padY, Width - _padX * 2, Height - _padY * 2);
+        TextRenderer.DrawText(e.Graphics, _text, Font, rect, ForeColor,
+            TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.Left
+            | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
     private static GraphicsPath RoundedRect(Rectangle r, int radius)
@@ -155,13 +191,31 @@ public sealed class ToastWindow : Form
         return path;
     }
 
+    private static uint GetDpiForPoint(Point pt)
+    {
+        const uint MONITOR_DEFAULTTONEAREST = 2;
+        const int MDT_EFFECTIVE_DPI = 0;
+        IntPtr monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        return GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out uint dpiX, out _) == 0 && dpiX > 0
+            ? dpiX
+            : 96;
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             _holdTimer.Dispose();
             _fadeTimer.Dispose();
+            _font?.Dispose();
+            Region?.Dispose();
         }
         base.Dispose(disposing);
     }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(Point pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 }
