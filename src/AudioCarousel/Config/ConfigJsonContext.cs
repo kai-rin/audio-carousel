@@ -6,6 +6,6 @@ namespace AudioCarousel.Config;
     WriteIndented = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(ConfigSchema))]
-internal partial class ConfigJsonContext : JsonSerializerContext
+public partial class ConfigJsonContext : JsonSerializerContext
 {
 }
