@@ -17,6 +17,8 @@ public sealed class TrayIcon : IDisposable
     private readonly List<ToolStripMenuItem> _deviceItems = new();
     private readonly ToolStripMenuItem _cycleItem;
     private readonly ToolStripMenuItem _cyclePrevItem;
+    // "Microphone" submenu; only shown once microphones are registered.
+    private readonly ToolStripMenuItem _micMenu;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _startupItem;
     private readonly ToolStripMenuItem _aboutItem;
@@ -24,6 +26,8 @@ public sealed class TrayIcon : IDisposable
 
     public event Action? CycleRequested;
     public event Action? CyclePreviousRequested;
+    public event Action? CycleInputRequested;
+    public event Action<string>? InputDeviceSelected;
     public event Action? LeftClicked;
     public event Action? SettingsRequested;
     public event Action<bool>? StartupToggled;
@@ -39,6 +43,7 @@ public sealed class TrayIcon : IDisposable
         _currentItem = new ToolStripMenuItem { Enabled = false };
         _cycleItem = new ToolStripMenuItem();
         _cyclePrevItem = new ToolStripMenuItem();
+        _micMenu = new ToolStripMenuItem { Visible = false };
         _settingsItem = new ToolStripMenuItem();
         _startupItem = new ToolStripMenuItem { CheckOnClick = true };
         _aboutItem = new ToolStripMenuItem();
@@ -58,6 +63,7 @@ public sealed class TrayIcon : IDisposable
             new ToolStripSeparator(),
             _cycleItem,
             _cyclePrevItem,
+            _micMenu,
             new ToolStripSeparator(),
             _settingsItem,
             _startupItem,
@@ -116,14 +122,43 @@ public sealed class TrayIcon : IDisposable
         }
     }
 
-    public void SetCurrentDeviceLabel(string? deviceName)
+    /// <summary>Rebuilds the Microphone submenu; hidden when the list is empty.</summary>
+    public void SetInputDevices(IReadOnlyList<TrayDeviceRow> rows)
+    {
+        foreach (ToolStripItem old in _micMenu.DropDownItems.Cast<ToolStripItem>().ToList())
+            old.Dispose();
+        _micMenu.DropDownItems.Clear();
+        _micMenu.Visible = rows.Count > 0;
+        if (rows.Count == 0) return;
+
+        foreach (var row in rows)
+        {
+            string text = row.IsOnline
+                ? row.DisplayName
+                : $"{row.DisplayName} {Strings.Get("common.offline")}";
+            var item = new ToolStripMenuItem(text) { Checked = row.IsCurrent, Enabled = row.IsOnline };
+            string endpointId = row.EndpointId;
+            item.Click += (_, _) => InputDeviceSelected?.Invoke(endpointId);
+            _micMenu.DropDownItems.Add(item);
+        }
+        _micMenu.DropDownItems.Add(new ToolStripSeparator());
+        var next = new ToolStripMenuItem(Strings.Get("tray.cycleInput"));
+        next.Click += (_, _) => CycleInputRequested?.Invoke();
+        _micMenu.DropDownItems.Add(next);
+    }
+
+    public void SetCurrentDeviceLabel(string? deviceName, string? inputName = null)
     {
         _currentItem.Text = string.IsNullOrEmpty(deviceName)
             ? Strings.Get("tray.currentPrefix") + Strings.Get("tray.currentNone")
             : Strings.Get("tray.currentPrefix") + deviceName;
-        _notifyIcon.Text = deviceName is null
+        string text = deviceName is null
             ? Strings.Get("app.title")
             : $"{Strings.Get("app.title")} — {Truncate(deviceName, 50)}";
+        if (inputName is not null)
+            text += "\n\U0001F3A4 " + Truncate(inputName, 50);
+        // NotifyIcon.Text is limited to 127 characters.
+        _notifyIcon.Text = Truncate(text, 127);
     }
 
     public void SetStartupChecked(bool isChecked) => _startupItem.Checked = isChecked;
@@ -133,6 +168,7 @@ public sealed class TrayIcon : IDisposable
         _titleItem.Text = Strings.Get("app.title");
         _cycleItem.Text = Strings.Get("tray.cycleNext");
         _cyclePrevItem.Text = Strings.Get("tray.cyclePrevious");
+        _micMenu.Text = Strings.Get("tray.microphone");
         _settingsItem.Text = Strings.Get("tray.settings");
         _startupItem.Text = Strings.Get("common.startWithWindows");
         _aboutItem.Text = Strings.Get("tray.about");

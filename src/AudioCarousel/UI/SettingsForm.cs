@@ -15,6 +15,10 @@ public sealed class SettingsForm : Form
     private const int ListHeight = 200;
 
     private readonly IAudioDeviceService _audio;
+    private readonly IAudioDeviceService _inputAudio;
+    // Which list the device editor shows: playback (false) or recording (true).
+    private bool _editingInput;
+    private Label _devicesHint = null!;
     private readonly ConfigSchema _workingCopy;
     private readonly Font _baseFont;
     private readonly Font _boldFont;
@@ -28,6 +32,10 @@ public sealed class SettingsForm : Form
     private readonly Button _nextClearBtn;
     private readonly HotkeyTextBox _prevBox;
     private readonly Button _prevClearBtn;
+    private readonly HotkeyTextBox _inputBox;
+    private readonly Button _inputClearBtn;
+    private readonly RadioButton _playbackTab;
+    private readonly RadioButton _recordingTab;
     private readonly ListView _devicesList;
     private readonly Button _addBtn;
     private readonly Button _removeBtn;
@@ -45,16 +53,18 @@ public sealed class SettingsForm : Form
     public ConfigSchema? Result { get; private set; }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public Func<HotkeySpec?, HotkeySpec?, HotkeyProbeResult>? HotkeyRegistrationProbe { get; set; }
+    public Func<HotkeySpec?, HotkeySpec?, HotkeySpec?, HotkeyProbeResult>? HotkeyRegistrationProbe { get; set; }
 
     // Pre-filled into an empty "Next device" box on first run, so the
     // common path is just "add devices, press OK".
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public HotkeySpec? SuggestedHotkey { get; set; }
 
-    public SettingsForm(ConfigSchema current, IAudioDeviceService audio, bool isFirstRun, bool startupEnabled)
+    public SettingsForm(ConfigSchema current, IAudioDeviceService audio, IAudioDeviceService inputAudio,
+        bool isFirstRun, bool startupEnabled)
     {
         _audio = audio;
+        _inputAudio = inputAudio;
         _isFirstRun = isFirstRun;
         _workingCopy = current.Clone();
         _workingCopy.StartWithWindows = startupEnabled;
@@ -91,7 +101,21 @@ public sealed class SettingsForm : Form
             Font = _boldFont,
             Margin = new Padding(0, 0, 0, 2),
         });
-        root.Controls.Add(AddHint(Strings.Get("settings.devicesHint"), topMargin: 0));
+        // Playback / Recording switch for the single list below.
+        var tabs = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            Margin = new Padding(0, 4, 0, 0),
+        };
+        _playbackTab = NewTab("settings.tabPlayback");
+        _recordingTab = NewTab("settings.tabRecording");
+        _playbackTab.Checked = true;
+        tabs.Controls.AddRange(new Control[] { _playbackTab, _recordingTab });
+        root.Controls.Add(tabs);
+        _devicesHint = AddHint(Strings.Get("settings.devicesHint"), topMargin: 6);
+        root.Controls.Add(_devicesHint);
 
         _devicesList = new ListView
         {
@@ -132,12 +156,13 @@ public sealed class SettingsForm : Form
             Margin = new Padding(0, 16, 0, 4),
         });
         _hotkeyTable = NewRow(3);
-        _hotkeyTable.RowCount = 2;
+        _hotkeyTable.RowCount = 3;
         _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _hotkeyTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         (_nextBox, _nextClearBtn) = AddHotkeyRow(_hotkeyTable, 0, "settings.hotkeyNext");
         (_prevBox, _prevClearBtn) = AddHotkeyRow(_hotkeyTable, 1, "settings.hotkeyPrevious");
+        (_inputBox, _inputClearBtn) = AddHotkeyRow(_hotkeyTable, 2, "settings.hotkeyInput");
         root.Controls.Add(_hotkeyTable);
         root.Controls.Add(AddHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
 
@@ -227,8 +252,11 @@ public sealed class SettingsForm : Form
         // Wire events.
         _nextClearBtn.Click += (_, _) => _nextBox.Value = null;
         _prevClearBtn.Click += (_, _) => _prevBox.Value = null;
+        _inputClearBtn.Click += (_, _) => _inputBox.Value = null;
         _nextBox.ValueChanged += (_, _) => UpdateButtons();
         _prevBox.ValueChanged += (_, _) => UpdateButtons();
+        _inputBox.ValueChanged += (_, _) => UpdateButtons();
+        _recordingTab.CheckedChanged += (_, _) => SwitchList(_recordingTab.Checked);
         _addBtn.Click += OnAddClicked;
         _removeBtn.Click += (_, _) => RemoveSelected();
         _upBtn.Click += (_, _) => MoveSelected(-1);
@@ -241,6 +269,7 @@ public sealed class SettingsForm : Form
         // Load working copy into UI.
         _nextBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.Hotkey);
         _prevBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.HotkeyPrevious);
+        _inputBox.Value = HotkeyParser.FromConfigEntry(_workingCopy.HotkeyInput);
         _startupCheck.Checked = _workingCopy.StartWithWindows;
         _commsCheck.Checked = _workingCopy.SwitchCommunications;
         _toastCheck.Checked = _workingCopy.ShowToast;
@@ -280,6 +309,28 @@ public sealed class SettingsForm : Form
         RefreshDevicesList();
         FitColumn();
     }
+
+    private List<DeviceEntry> CurrentList => _editingInput ? _workingCopy.InputDevices : _workingCopy.Devices;
+    private IAudioDeviceService CurrentAudio => _editingInput ? _inputAudio : _audio;
+
+    private void SwitchList(bool input)
+    {
+        if (_editingInput == input) return;
+        _editingInput = input;
+        _devicesHint.Text = Strings.Get(input ? "settings.inputDevicesHint" : "settings.devicesHint");
+        RefreshDevicesList(selectIndex: InitialSelection());
+    }
+
+    private static RadioButton NewTab(string key) => new()
+    {
+        Text = Strings.Get(key),
+        Appearance = Appearance.Button,
+        AutoSize = true,
+        MinimumSize = new Size(110, 30),
+        TextAlign = ContentAlignment.MiddleCenter,
+        Margin = new Padding(0, 0, 4, 0),
+        UseVisualStyleBackColor = true,
+    };
 
     private static TableLayoutPanel NewRow(int columns) => new()
     {
@@ -411,14 +462,14 @@ public sealed class SettingsForm : Form
         if (selectIndex < 0 && _devicesList.SelectedIndices.Count > 0)
             selectIndex = _devicesList.SelectedIndices[0];
 
-        var live = _audio.EnumerateActiveOutputs();
-        DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
+        var live = CurrentAudio.EnumerateActiveOutputs();
+        DeviceMatcher.HealEndpointIds(CurrentList, live);
         var available = new HashSet<string>(live.Select(d => d.EndpointId), StringComparer.Ordinal);
-        string? currentDefault = _audio.GetDefaultOutputId(AudioRole.Multimedia);
+        string? currentDefault = CurrentAudio.GetDefaultOutputId(AudioRole.Multimedia);
 
         _devicesList.BeginUpdate();
         _devicesList.Items.Clear();
-        foreach (var d in _workingCopy.Devices)
+        foreach (var d in CurrentList)
         {
             bool isOnline = available.Contains(d.EndpointId);
             bool isCurrent = isOnline && d.EndpointId == currentDefault;
@@ -450,9 +501,9 @@ public sealed class SettingsForm : Form
     // and Delete work immediately.
     private int InitialSelection()
     {
-        if (_workingCopy.Devices.Count == 0) return -1;
-        string? current = _audio.GetDefaultOutputId(AudioRole.Multimedia);
-        int idx = _workingCopy.Devices.FindIndex(d => d.EndpointId == current);
+        if (CurrentList.Count == 0) return -1;
+        string? current = CurrentAudio.GetDefaultOutputId(AudioRole.Multimedia);
+        int idx = CurrentList.FindIndex(d => d.EndpointId == current);
         return idx >= 0 ? idx : 0;
     }
 
@@ -464,9 +515,10 @@ public sealed class SettingsForm : Form
         int idx = SelectedIndex;
         _removeBtn.Enabled = idx >= 0;
         _upBtn.Enabled = idx > 0;
-        _downBtn.Enabled = idx >= 0 && idx < _workingCopy.Devices.Count - 1;
+        _downBtn.Enabled = idx >= 0 && idx < CurrentList.Count - 1;
         _nextClearBtn.Enabled = _nextBox.Value is not null;
         _prevClearBtn.Enabled = _prevBox.Value is not null;
+        _inputClearBtn.Enabled = _inputBox.Value is not null;
     }
 
     private void OnDevicesKeyDown(object? sender, KeyEventArgs e)
@@ -490,10 +542,10 @@ public sealed class SettingsForm : Form
 
     private void OnAddClicked(object? sender, EventArgs e)
     {
-        var live = _audio.EnumerateActiveOutputs();
+        var live = CurrentAudio.EnumerateActiveOutputs();
         // Heal so a churned-ID device counts as registered instead of a duplicate candidate.
-        DeviceMatcher.HealEndpointIds(_workingCopy.Devices, live);
-        var registered = new HashSet<string>(_workingCopy.Devices.Select(d => d.EndpointId), StringComparer.Ordinal);
+        DeviceMatcher.HealEndpointIds(CurrentList, live);
+        var registered = new HashSet<string>(CurrentList.Select(d => d.EndpointId), StringComparer.Ordinal);
         var candidates = live.Where(d => !registered.Contains(d.EndpointId)).ToList();
 
         foreach (ToolStripItem old in _addMenu.Items.Cast<ToolStripItem>().ToList())
@@ -511,13 +563,13 @@ public sealed class SettingsForm : Form
                 var menuItem = new ToolStripMenuItem(d.DisplayName);
                 menuItem.Click += (_, _) =>
                 {
-                    _workingCopy.Devices.Add(new DeviceEntry
+                    CurrentList.Add(new DeviceEntry
                     {
                         EndpointId = d.EndpointId,
                         DisplayName = d.DisplayName,
                         AddedAt = DateTimeOffset.Now,
                     });
-                    RefreshDevicesList(selectIndex: _workingCopy.Devices.Count - 1);
+                    RefreshDevicesList(selectIndex: CurrentList.Count - 1);
                     _devicesList.Focus();
                 };
                 _addMenu.Items.Add(menuItem);
@@ -530,11 +582,9 @@ public sealed class SettingsForm : Form
     {
         int idx = SelectedIndex;
         if (idx < 0) return;
-        _workingCopy.Devices.RemoveAt(idx);
-        if (_workingCopy.CurrentIndex >= _workingCopy.Devices.Count)
-            _workingCopy.CurrentIndex = 0;
+        CurrentList.RemoveAt(idx);
         RefreshDevicesList(selectIndex: idx);
-        if (_workingCopy.Devices.Count == 0) _addBtn.Focus();
+        if (CurrentList.Count == 0) _addBtn.Focus();
     }
 
     private void MoveSelected(int delta)
@@ -542,9 +592,9 @@ public sealed class SettingsForm : Form
         int idx = SelectedIndex;
         if (idx < 0) return;
         int target = idx + delta;
-        if (target < 0 || target >= _workingCopy.Devices.Count) return;
-        (_workingCopy.Devices[idx], _workingCopy.Devices[target]) =
-            (_workingCopy.Devices[target], _workingCopy.Devices[idx]);
+        if (target < 0 || target >= CurrentList.Count) return;
+        (CurrentList[idx], CurrentList[target]) =
+            (CurrentList[target], CurrentList[idx]);
         RefreshDevicesList(selectIndex: target);
         _devicesList.Focus();
     }
@@ -553,11 +603,12 @@ public sealed class SettingsForm : Form
     {
         HotkeySpec? next = _nextBox.Value;
         HotkeySpec? prev = _prevBox.Value;
+        HotkeySpec? input = _inputBox.Value;
 
-        if (next is not null && next == prev)
+        if ((prev is not null && prev == next) || (input is not null && (input == next || input == prev)))
         {
             Warn("error.hotkeysSame");
-            _prevBox.Focus();
+            (input is not null && (input == next || input == prev) ? _inputBox : _prevBox).Focus();
             return;
         }
 
@@ -578,9 +629,9 @@ public sealed class SettingsForm : Form
         }
 
         // Validate hotkey registration before accepting.
-        if ((next is not null || prev is not null) && HotkeyRegistrationProbe is not null)
+        if ((next is not null || prev is not null || input is not null) && HotkeyRegistrationProbe is not null)
         {
-            var probe = HotkeyRegistrationProbe(next, prev);
+            var probe = HotkeyRegistrationProbe(next, prev, input);
             if (probe.Next != HotkeyRegisterResult.Ok)
             {
                 Warn(HotkeyErrorKey(probe.Next));
@@ -593,10 +644,17 @@ public sealed class SettingsForm : Form
                 _prevBox.Focus();
                 return;
             }
+            if (probe.Input != HotkeyRegisterResult.Ok)
+            {
+                Warn(HotkeyErrorKey(probe.Input));
+                _inputBox.Focus();
+                return;
+            }
         }
 
         _workingCopy.Hotkey = next is HotkeySpec n ? HotkeyParser.ToConfigEntry(n) : null;
         _workingCopy.HotkeyPrevious = prev is HotkeySpec p ? HotkeyParser.ToConfigEntry(p) : null;
+        _workingCopy.HotkeyInput = input is HotkeySpec i ? HotkeyParser.ToConfigEntry(i) : null;
         _workingCopy.StartWithWindows = _startupCheck.Checked;
         _workingCopy.SwitchCommunications = _commsCheck.Checked;
         _workingCopy.ShowToast = _toastCheck.Checked;

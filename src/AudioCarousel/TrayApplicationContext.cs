@@ -21,6 +21,9 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     private readonly bool _configUnreadable;
     private readonly StartupRegistration _startup;
     private readonly IAudioDeviceService _audio;
+    private readonly IAudioDeviceService _inputAudio;
+    private readonly CycleController _inputCycle;
+    private readonly HotkeyHost _inputHotkeyHost;
     private readonly TrayIcon _tray;
     private readonly ToastWindow _toast;
     private readonly HotkeyHost _hotkeyHost;
@@ -53,7 +56,8 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             // Portable app: keep the Run entry pointing at wherever the exe lives now.
             TryRegistry(() => _startup.EnsurePath(_exePath), showError: false);
         }
-        _audio = new AudioDeviceService();
+        _audio = new AudioDeviceService(AudioFlow.Render);
+        _inputAudio = new AudioDeviceService(AudioFlow.Capture);
 
         // Creating the first control installs the WinForms synchronization
         // context, so posted work runs on this (UI) thread once the loop starts.
@@ -62,8 +66,10 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         _tray = new TrayIcon();
         _hotkeyHost = new HotkeyHost();
         _prevHotkeyHost = new HotkeyHost();
+        _inputHotkeyHost = new HotkeyHost();
 
         _cycle = new CycleController(_config, _audio, this, PersistCurrentIndex);
+        _inputCycle = new CycleController(_config, _inputAudio, this, PersistCurrentIndex, CycleTarget.Input);
 
         WireTrayEvents();
         var hotkeyResult = ApplyHotkeysFromConfig(showErrors: false);
@@ -112,6 +118,8 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     {
         _tray.CycleRequested += () => _cycle.Cycle();
         _tray.CyclePreviousRequested += () => _cycle.CyclePrevious();
+        _tray.CycleInputRequested += () => _inputCycle.Cycle();
+        _tray.InputDeviceSelected += id => _inputCycle.SwitchTo(id);
         _tray.LeftClicked += () =>
         {
             if (_config.LeftClickCycles) _cycle.Cycle();
@@ -132,17 +140,34 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         {
             PersistCurrentIndex();
         }
+        _tray.SetDevices(BuildRows(_config.Devices, live, _audio));
+
+        if (_config.InputDevices.Count > 0)
+        {
+            var liveInputs = _inputAudio.EnumerateActiveOutputs();
+            if (DeviceMatcher.HealEndpointIds(_config.InputDevices, liveInputs))
+                PersistCurrentIndex();
+            _tray.SetInputDevices(BuildRows(_config.InputDevices, liveInputs, _inputAudio));
+        }
+        else
+        {
+            _tray.SetInputDevices(Array.Empty<TrayDeviceRow>());
+        }
+        _tray.SetStartupChecked(IsStartupEnabled());
+    }
+
+    private static List<TrayDeviceRow> BuildRows(
+        List<DeviceEntry> devices, IReadOnlyList<AudioDevice> live, IAudioDeviceService audio)
+    {
         var liveIds = new HashSet<string>(live.Select(d => d.EndpointId), StringComparer.Ordinal);
-        string? currentId = _audio.GetDefaultOutputId(AudioRole.Multimedia);
-        var rows = _config.Devices
+        string? currentId = audio.GetDefaultOutputId(AudioRole.Multimedia);
+        return devices
             .Select(d => new TrayDeviceRow(
                 d.EndpointId,
                 d.DisplayName,
                 liveIds.Contains(d.EndpointId),
                 d.EndpointId == currentId))
             .ToList();
-        _tray.SetDevices(rows);
-        _tray.SetStartupChecked(IsStartupEnabled());
     }
 
     private void OpenSettings(bool firstRun)
@@ -155,7 +180,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             return;
         }
 
-        using var form = new SettingsForm(_config, _audio, firstRun, IsStartupEnabled())
+        using var form = new SettingsForm(_config, _audio, _inputAudio, firstRun, IsStartupEnabled())
         {
             HotkeyRegistrationProbe = ProbeHotkeys,
             SuggestedHotkey = firstRun && _config.Hotkey is null ? FindFreeHotkey() : null,
@@ -179,6 +204,9 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _config.Devices = newCfg.Devices;
             _config.Language = newCfg.Language;
             _config.HotkeyPrevious = newCfg.HotkeyPrevious;
+            _config.HotkeyInput = newCfg.HotkeyInput;
+            _config.InputDevices = newCfg.InputDevices;
+            if (_config.InputCurrentIndex >= _config.InputDevices.Count) _config.InputCurrentIndex = 0;
             _config.SwitchCommunications = newCfg.SwitchCommunications;
             _config.ShowToast = newCfg.ShowToast;
             _config.LeftClickCycles = newCfg.LeftClickCycles;
@@ -239,25 +267,30 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         _tray.ShowBalloon(Strings.Get("balloon.title"), text);
     }
 
-    private HotkeyProbeResult ProbeHotkeys(HotkeySpec? next, HotkeySpec? previous)
+    private HotkeyProbeResult ProbeHotkeys(HotkeySpec? next, HotkeySpec? previous, HotkeySpec? input)
     {
         // Free both first so swapping the two combinations doesn't collide
         // with our own registrations. On success, the OK path re-applies
         // from config anyway.
         _hotkeyHost.Unregister();
         _prevHotkeyHost.Unregister();
+        _inputHotkeyHost.Unregister();
         var nextResult = next is HotkeySpec n
             ? _hotkeyHost.TryRegister(n, () => _cycle.Cycle())
             : HotkeyRegisterResult.Ok;
         var prevResult = previous is HotkeySpec p
             ? _prevHotkeyHost.TryRegister(p, () => _cycle.CyclePrevious())
             : HotkeyRegisterResult.Ok;
-        if (nextResult != HotkeyRegisterResult.Ok || prevResult != HotkeyRegisterResult.Ok)
+        var inputResult = input is HotkeySpec i
+            ? _inputHotkeyHost.TryRegister(i, () => _inputCycle.Cycle())
+            : HotkeyRegisterResult.Ok;
+        if (nextResult != HotkeyRegisterResult.Ok || prevResult != HotkeyRegisterResult.Ok
+            || inputResult != HotkeyRegisterResult.Ok)
         {
             // Re-apply the previous registrations so we don't end up with none.
             ApplyHotkeysFromConfig(showErrors: false);
         }
-        return new HotkeyProbeResult(nextResult, prevResult);
+        return new HotkeyProbeResult(nextResult, prevResult, inputResult);
     }
 
     // Registers both configured hotkeys. Returns the first failure, or null
@@ -266,9 +299,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     {
         _hotkeyHost.Unregister();
         _prevHotkeyHost.Unregister();
+        _inputHotkeyHost.Unregister();
         var nextFailure = Register(_hotkeyHost, _config.Hotkey, () => _cycle.Cycle());
         var prevFailure = Register(_prevHotkeyHost, _config.HotkeyPrevious, () => _cycle.CyclePrevious());
-        var failure = nextFailure ?? prevFailure;
+        var inputFailure = Register(_inputHotkeyHost, _config.HotkeyInput, () => _inputCycle.Cycle());
+        var failure = nextFailure ?? prevFailure ?? inputFailure;
         if (failure is HotkeyRegisterResult f && showErrors)
         {
             MessageBox.Show(Strings.Get(HotkeyErrorKey(f)),
@@ -380,6 +415,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
             _watcher?.Dispose();
             _hotkeyHost.Dispose();
             _prevHotkeyHost.Dispose();
+            _inputHotkeyHost.Dispose();
             _tray.Dispose();
             _toast.Dispose();
             // Let a just-queued save (e.g. the last cycle before Exit) land.
@@ -390,16 +426,24 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
     private void RefreshTrayCurrentLabel()
     {
-        var live = _audio.EnumerateActiveOutputs();
-        string? currentId = _audio.GetDefaultOutputId(AudioRole.Multimedia);
-        if (currentId is not null && !_config.Devices.Any(d => d.EndpointId == currentId)
-            && DeviceMatcher.HealEndpointIds(_config.Devices, live))
+        string? output = CurrentDeviceName(_config.Devices, _audio);
+        // The microphone line only appears once microphones are in use.
+        string? input = _config.InputDevices.Count > 0 ? CurrentDeviceName(_config.InputDevices, _inputAudio) : null;
+        _tray.SetCurrentDeviceLabel(output, input);
+    }
+
+    private string? CurrentDeviceName(List<DeviceEntry> devices, IAudioDeviceService audio)
+    {
+        var live = audio.EnumerateActiveOutputs();
+        string? currentId = audio.GetDefaultOutputId(AudioRole.Multimedia);
+        if (currentId is not null && !devices.Any(d => d.EndpointId == currentId)
+            && DeviceMatcher.HealEndpointIds(devices, live))
         {
             PersistCurrentIndex();
         }
         // Prefer the registered name; fall back to the live name so the
         // tooltip is right even when the current device isn't in the cycle.
-        string? name = _config.Devices.FirstOrDefault(d => d.EndpointId == currentId)?.DisplayName;
+        string? name = devices.FirstOrDefault(d => d.EndpointId == currentId)?.DisplayName;
         if (name is null && currentId is not null)
         {
             foreach (var d in live)
@@ -407,7 +451,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
                 if (d.EndpointId == currentId) { name = d.DisplayName; break; }
             }
         }
-        _tray.SetCurrentDeviceLabel(name);
+        return name;
     }
 
     private void PersistCurrentIndex()

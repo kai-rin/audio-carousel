@@ -27,7 +27,8 @@ public sealed class DefaultDeviceWatcher : IDisposable
         _client = _enumerator.CreateNotificationClient(useSynchronizationContext: false);
         _client.DefaultDeviceChanged += (_, e) =>
         {
-            if (e.Flow == DataFlow.Render && e.Role == Role.Multimedia) Signal();
+            // Playback or recording: the tray tooltip shows both.
+            if (e.Role == Role.Multimedia) Signal();
         };
         _client.DeviceAdded += (_, _) => Signal();
         _client.DeviceRemoved += (_, _) => Signal();

@@ -11,8 +11,9 @@ public enum HotkeyRegisterResult
     Failed,
 }
 
-/// <summary>Outcome of test-registering both hotkeys (Ok for an unset one).</summary>
-public readonly record struct HotkeyProbeResult(HotkeyRegisterResult Next, HotkeyRegisterResult Previous);
+/// <summary>Outcome of test-registering the hotkeys (Ok for an unset one).</summary>
+public readonly record struct HotkeyProbeResult(
+    HotkeyRegisterResult Next, HotkeyRegisterResult Previous, HotkeyRegisterResult Input);
 
 public sealed partial class HotkeyHost : IDisposable
 {
