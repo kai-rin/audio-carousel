@@ -12,7 +12,7 @@ public sealed class SettingsForm : Form
 {
     // Logical (96-DPI) sizes; AutoScaleMode.Dpi scales them to the monitor.
     private const int ContentWidth = 560;
-    private const int ListHeight = 200;
+    private const int ListHeight = 150;
 
     private readonly IAudioDeviceService _audio;
     private readonly IAudioDeviceService _inputAudio;
@@ -319,8 +319,17 @@ public sealed class SettingsForm : Form
     // selected one so it's obvious which list is being edited.
     private void MarkSelectedTab()
     {
-        _playbackTab.Font = _playbackTab.Checked ? _boldFont : _baseFont;
-        _recordingTab.Font = _recordingTab.Checked ? _boldFont : _baseFont;
+        foreach (var tab in new[] { _playbackTab, _recordingTab })
+        {
+            // Filled brand-blue segment for the selected list: unmistakable in
+            // both light and dark mode.
+            tab.Font = tab.Checked ? _boldFont : _baseFont;
+            tab.FlatStyle = FlatStyle.Flat;
+            tab.FlatAppearance.BorderColor = tab.Checked ? FluentMenuRenderer.Accent : SystemColors.ControlDark;
+            tab.FlatAppearance.CheckedBackColor = FluentMenuRenderer.Accent;
+            tab.BackColor = tab.Checked ? FluentMenuRenderer.Accent : SystemColors.Control;
+            tab.ForeColor = tab.Checked ? Color.White : SystemColors.ControlText;
+        }
     }
 
     private void SwitchList(bool input)

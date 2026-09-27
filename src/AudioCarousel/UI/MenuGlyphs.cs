@@ -20,6 +20,7 @@ public static class MenuGlyphs
     public const char Exit = '';      // Power
     public const char Warning = '';
     public const char Close = '';
+    public const char Check = '';
 
     private static readonly Lazy<string?> FontName = new(() =>
     {

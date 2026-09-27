@@ -31,11 +31,18 @@ public sealed class ToastWindow : Form
     private const int MaxTextWidth = 380;
     private const int CornerRadius = 8;
 
-    private static readonly Color Back = Color.FromArgb(0x10, 0x1C, 0x36);      // navy
     private static readonly Color Accent = Color.FromArgb(0x25, 0x63, 0xEB);    // blue
     private static readonly Color ErrorAccent = Color.FromArgb(0xEF, 0x44, 0x44);
-    private static readonly Color Sub = Color.FromArgb(0xAF, 0xBD, 0xD6);
-    private static readonly Color ErrorIcon = Color.FromArgb(0xFC, 0xA5, 0xA5);
+
+    // Navy card in dark mode (the brand look), white card in light mode.
+    private sealed record Theme(Color Back, Color Title, Color Sub, Color Icon, Color ErrorIcon, Color? Border);
+    private static readonly Theme DarkTheme = new(
+        Color.FromArgb(0x10, 0x1C, 0x36), Color.White, Color.FromArgb(0xAF, 0xBD, 0xD6),
+        Color.White, Color.FromArgb(0xFC, 0xA5, 0xA5), Border: null);
+    private static readonly Theme LightTheme = new(
+        Color.White, Color.FromArgb(0x0F, 0x17, 0x2A), Color.FromArgb(0x47, 0x56, 0x6E),
+        Color.FromArgb(0x10, 0x1C, 0x36), Color.FromArgb(0xDC, 0x26, 0x26), Border: Color.FromArgb(0xD8, 0xE0, 0xEC));
+    private Theme _theme = DarkTheme;
 
     private readonly System.Windows.Forms.Timer _holdTimer;
     private readonly System.Windows.Forms.Timer _fadeTimer;
@@ -60,8 +67,8 @@ public sealed class ToastWindow : Form
         AutoScaleMode = AutoScaleMode.None;
         DoubleBuffered = true;
         Opacity = 0;
-        BackColor = Back;
-        ForeColor = Color.White;
+        BackColor = DarkTheme.Back;
+        ForeColor = DarkTheme.Title;
         AccessibleRole = AccessibleRole.Alert;
         Cursor = Cursors.Hand;
 
@@ -87,6 +94,8 @@ public sealed class ToastWindow : Form
     public void ShowContent(ToastContent content)
     {
         _content = content;
+        _theme = Application.IsDarkModeEnabled ? DarkTheme : LightTheme;
+        BackColor = _theme.Back;
         AccessibleName = content.Subtitle is null ? content.Title : $"{content.Title}. {content.Subtitle}";
         LayoutOnActiveMonitor();
 
@@ -190,8 +199,8 @@ public sealed class ToastWindow : Form
     {
         _icon?.Dispose();
         _close?.Dispose();
-        _icon = MenuGlyphs.Render(_content.Glyph, S(IconBox), _content.IsError ? ErrorIcon : Color.White);
-        _close = MenuGlyphs.Render(MenuGlyphs.Close, S(12), Sub);
+        _icon = MenuGlyphs.Render(_content.Glyph, S(IconBox), _content.IsError ? _theme.ErrorIcon : _theme.Icon);
+        _close = MenuGlyphs.Render(MenuGlyphs.Close, S(12), _theme.Sub);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -208,13 +217,24 @@ public sealed class ToastWindow : Form
                 _closeRect.Y + (_closeRect.Height - _close.Height) / 2);
         }
 
-        TextRenderer.DrawText(g, Strings.Get("app.title"), _captionFont, _captionRect, Sub,
+        if (_theme.Border is Color border)
+        {
+            // Rounded window region clips the corners; a hairline keeps the
+            // white card from dissolving into light app backgrounds.
+            using var pen = new Pen(border);
+            using var outline = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), S(CornerRadius));
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.DrawPath(pen, outline);
+            g.SmoothingMode = SmoothingMode.None;
+        }
+
+        TextRenderer.DrawText(g, Strings.Get("app.title"), _captionFont, _captionRect, _theme.Sub,
             TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
-        TextRenderer.DrawText(g, _content.Title, _titleFont, _titleRect, Color.White,
+        TextRenderer.DrawText(g, _content.Title, _titleFont, _titleRect, _theme.Title,
             TextFormatFlags.WordBreak | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
         if (_content.Subtitle is not null)
         {
-            TextRenderer.DrawText(g, _content.Subtitle, _subFont, _subRect, Sub,
+            TextRenderer.DrawText(g, _content.Subtitle, _subFont, _subRect, _theme.Sub,
                 TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
         }
     }

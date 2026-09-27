@@ -12,7 +12,7 @@ public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _menu;
-    private readonly ToolStripLabel _titleItem;
+    private readonly ToolStripMenuItem _titleItem;
     private readonly ToolStripMenuItem _currentItem;
     private readonly List<ToolStripMenuItem> _deviceItems = new();
     private readonly ToolStripMenuItem _cycleItem;
@@ -27,6 +27,7 @@ public sealed class TrayIcon : IDisposable
     private readonly List<Image> _images = new();
     private Icon? _icon;
     private string? _inputHotkeyLabel;
+    private FluentMenuRenderer _renderer = new(dark: true);
 
     public event Action? CycleRequested;
     public event Action? CyclePreviousRequested;
@@ -44,7 +45,14 @@ public sealed class TrayIcon : IDisposable
     {
         _menu = new ContextMenuStrip();
         _titleFont = new Font(_menu.Font, FontStyle.Bold);
-        _titleItem = new ToolStripLabel { Font = _titleFont, Padding = new Padding(0, 2, 0, 2) };
+        // A menu item (not a label) so the logo lines up with the other icons;
+        // the renderer draws it without hover and it does nothing on click.
+        _titleItem = new ToolStripMenuItem
+        {
+            Font = _titleFont,
+            Tag = FluentMenuRenderer.HeaderTag,
+            AccessibleRole = AccessibleRole.StaticText,
+        };
         _currentItem = new ToolStripMenuItem { Enabled = false };
         _cycleItem = new ToolStripMenuItem { ShowShortcutKeys = true };
         _cyclePrevItem = new ToolStripMenuItem { ShowShortcutKeys = true, Visible = false };
@@ -86,7 +94,15 @@ public sealed class TrayIcon : IDisposable
         {
             if (e.Button == MouseButtons.Left) LeftClicked?.Invoke();
         };
-        _menu.Opening += (_, _) => MenuOpening?.Invoke();
+        _menu.Opening += (_, _) =>
+        {
+            MenuOpening?.Invoke();
+            FluentMenuRenderer.ApplySpacing(_menu.Items);
+            FluentMenuRenderer.ApplySpacing(_micMenu.DropDownItems);
+        };
+        // Windows 11 rounded popup corners (the submenu gets them too).
+        _menu.Opened += (_, _) => FluentMenuRenderer.RoundCorners(_menu.Handle);
+        _micMenu.DropDownOpened += (_, _) => FluentMenuRenderer.RoundCorners(_micMenu.DropDown.Handle);
 
         ApplyTheme();
         // Follow taskbar light/dark switches while running.
@@ -110,6 +126,9 @@ public sealed class TrayIcon : IDisposable
         _notifyIcon.Icon = _icon;
         oldIcon?.Dispose();
 
+        _renderer = new FluentMenuRenderer(Application.IsDarkModeEnabled);
+        _menu.Renderer = _renderer;
+
         foreach (var image in _images) image.Dispose();
         _images.Clear();
         _titleItem.Image = Track(AppIcons.App(_menu.ImageScalingSize).ToBitmap());
@@ -119,11 +138,15 @@ public sealed class TrayIcon : IDisposable
         _settingsItem.Image = Glyph(MenuGlyphs.Settings);
         _aboutItem.Image = Glyph(MenuGlyphs.Info);
         _exitItem.Image = Glyph(MenuGlyphs.Exit);
-        foreach (var item in _deviceItems) item.Image = Glyph(MenuGlyphs.Speaker);
+        foreach (var item in _deviceItems) item.Image = Glyph(MenuGlyphs.Speaker, onAccent: item.Checked);
+        SetStartupChecked(_startupItem.Checked);
     }
 
-    private Image? Glyph(char glyph) =>
-        MenuGlyphs.Render(glyph, _menu.ImageScalingSize.Height, SystemColors.MenuText) is Bitmap bmp ? Track(bmp) : null;
+    // Checked items sit on the brand-blue box, so their glyph is white.
+    private Image? Glyph(char glyph, bool onAccent = false) =>
+        MenuGlyphs.Render(glyph, _menu.ImageScalingSize.Height, onAccent ? Color.White : _renderer.Text) is Bitmap bmp
+            ? Track(bmp)
+            : null;
 
     private Image Track(Image image)
     {
@@ -152,7 +175,7 @@ public sealed class TrayIcon : IDisposable
         foreach (var row in rows)
         {
             var item = DeviceItem(row, id => DeviceSelected?.Invoke(id));
-            item.Image = Glyph(MenuGlyphs.Speaker);
+            item.Image = Glyph(MenuGlyphs.Speaker, onAccent: row.IsCurrent);
             _menu.Items.Insert(insertAt++, item);
             _deviceItems.Add(item);
         }
@@ -168,7 +191,11 @@ public sealed class TrayIcon : IDisposable
         if (rows.Count == 0) return;
 
         foreach (var row in rows)
-            _micMenu.DropDownItems.Add(DeviceItem(row, id => InputDeviceSelected?.Invoke(id)));
+        {
+            var item = DeviceItem(row, id => InputDeviceSelected?.Invoke(id));
+            item.Image = Glyph(MenuGlyphs.Microphone, onAccent: row.IsCurrent);
+            _micMenu.DropDownItems.Add(item);
+        }
         _micMenu.DropDownItems.Add(new ToolStripSeparator());
         var next = new ToolStripMenuItem(Strings.Get("tray.cycleInput"))
         {
@@ -217,7 +244,12 @@ public sealed class TrayIcon : IDisposable
         _notifyIcon.Text = Truncate(text, 127);
     }
 
-    public void SetStartupChecked(bool isChecked) => _startupItem.Checked = isChecked;
+    public void SetStartupChecked(bool isChecked)
+    {
+        _startupItem.Checked = isChecked;
+        // Fluent check glyph on the blue box, matching the other icons.
+        _startupItem.Image = isChecked ? Glyph(MenuGlyphs.Check, onAccent: true) : null;
+    }
 
     public void ApplyLabels()
     {
