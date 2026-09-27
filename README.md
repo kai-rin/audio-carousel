@@ -171,14 +171,14 @@ of this — just download the release binary above.
 
 ## Tech stack
 
-- C# / .NET 9 / WinForms (`net9.0-windows`)
+- C# / .NET 10 (LTS) / WinForms (`net10.0-windows`)
 - xUnit for tests
 - `NAudio.Wasapi` (`NAudio.CoreAudioApi` namespace) plus an inline
   `IPolicyConfig` COM declaration in `src/AudioCarousel/Audio/`
 
 ## Build and test
 
-Requires the .NET 9 SDK on Windows.
+Requires the .NET 10 SDK on Windows.
 
 ```bash
 dotnet build

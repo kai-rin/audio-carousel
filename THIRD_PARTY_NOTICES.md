@@ -9,7 +9,7 @@ licensed under the [MIT License](LICENSE).
 
 | Component | Version | License | Source |
 |-----------|---------|---------|--------|
-| .NET runtime + Windows Forms | 9.x | MIT | https://github.com/dotnet/runtime, https://github.com/dotnet/winforms |
+| .NET runtime + Windows Forms | 10.x | MIT | https://github.com/dotnet/runtime, https://github.com/dotnet/winforms |
 | NAudio.Wasapi (provides `NAudio.CoreAudioApi`) | 2.3.0 | MIT | https://github.com/naudio/NAudio |
 
 ## Test-only dependencies (not redistributed)

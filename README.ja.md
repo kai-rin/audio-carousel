@@ -100,13 +100,13 @@ Audio Carousel は既定の音声エンドポイントを切り替えるため�
 
 ## 技術スタック
 
-- C# / .NET 9 / WinForms（`net9.0-windows`）
+- C# / .NET 10 (LTS) / WinForms（`net10.0-windows`）
 - テスト: xUnit
 - `NAudio.Wasapi`（`NAudio.CoreAudioApi` 名前空間）＋ `src/AudioCarousel/Audio/` 配下のインライン `IPolicyConfig` COM 宣言
 
 ## ビルドとテスト
 
-Windows 上で .NET 9 SDK が必要です。
+Windows 上で .NET 10 SDK が必要です。
 
 ```bash
 dotnet build

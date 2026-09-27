@@ -21,7 +21,7 @@ promo/                    # Remotion promo video (separate npm project; not part
 
 ## Tech
 
-- C# / .NET 9 / WinForms (`net9.0-windows`), self-contained single-file publish (~108 MB)
+- C# / .NET 10 (LTS) / WinForms (`net10.0-windows`), self-contained single-file publish (~108 MB)
 - xUnit for tests, NuGet with `packages.lock.json` (use `--locked-mode` in CI)
 - `NAudio.Wasapi` (provides `NAudio.CoreAudioApi` namespace) + inline `IPolicyConfig` COM declaration
 

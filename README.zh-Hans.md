@@ -100,13 +100,13 @@ Audio Carousel 调用 `IPolicyConfig` 这一未公开的 Windows COM 接口来�
 
 ## 技术栈
 
-- C# / .NET 9 / WinForms（`net9.0-windows`）
+- C# / .NET 10 (LTS) / WinForms（`net10.0-windows`）
 - 测试框架：xUnit
 - `NAudio.Wasapi`（`NAudio.CoreAudioApi` 命名空间）+ `src/AudioCarousel/Audio/` 下的内联 `IPolicyConfig` COM 声明
 
 ## 构建与测试
 
-需要 Windows 系统并安装 .NET 9 SDK。
+需要 Windows 系统并安装 .NET 10 SDK。
 
 ```bash
 dotnet build
