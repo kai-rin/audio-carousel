@@ -21,6 +21,31 @@ public sealed class ConfigSchema
 
     [JsonPropertyName("startWithWindows")]
     public bool StartWithWindows { get; set; }
+
+    // Whether cycling also moves the Communications role (the device
+    // Teams/Discord/Zoom use for calls). Absent in older files => true.
+    [JsonPropertyName("switchCommunications")]
+    public bool SwitchCommunications { get; set; } = true;
+
+    public ConfigSchema Clone() => new()
+    {
+        Version = Version,
+        Language = Language,
+        Hotkey = Hotkey is null ? null : new HotkeyEntry
+        {
+            Modifiers = new List<string>(Hotkey.Modifiers),
+            Key = Hotkey.Key,
+        },
+        Devices = Devices.Select(d => new DeviceEntry
+        {
+            EndpointId = d.EndpointId,
+            DisplayName = d.DisplayName,
+            AddedAt = d.AddedAt,
+        }).ToList(),
+        CurrentIndex = CurrentIndex,
+        StartWithWindows = StartWithWindows,
+        SwitchCommunications = SwitchCommunications,
+    };
 }
 
 public sealed class HotkeyEntry

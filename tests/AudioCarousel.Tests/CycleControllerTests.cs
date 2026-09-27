@@ -258,6 +258,42 @@ public class CycleControllerTests
         Assert.Equal(1, saves.Count);
     }
 
+    // Users who keep a dedicated headset for calls (Teams/Discord use the
+    // Communications role) can opt out of having it switched.
+    [Fact]
+    public void Cycle_SwitchCommunicationsOff_LeavesCommunicationsRoleAlone()
+    {
+        var (c, a, _, cfg, _) = Build(("a", "A", true), ("b", "B", true));
+        cfg.SwitchCommunications = false;
+        a.Defaults[AudioRole.Communications] = "headset";
+
+        c.Cycle();
+
+        Assert.Equal(2, a.SetCalls.Count);
+        Assert.DoesNotContain(a.SetCalls, call => call.role == AudioRole.Communications);
+        Assert.Equal("headset", a.Defaults[AudioRole.Communications]);
+    }
+
+    // A failure part-way through must not leave the roles split across devices.
+    [Fact]
+    public void Cycle_FailureOnLaterRole_RollsBackEarlierRoles()
+    {
+        var (c, a, s, cfg, _) = Build(("a", "A", true), ("b", "B", true));
+        a.Defaults[AudioRole.Multimedia] = "a";
+        a.Defaults[AudioRole.Console] = "a";
+        a.Defaults[AudioRole.Communications] = "a";
+        a.SetDefaultException = (id, role) =>
+            id == "b" && role == AudioRole.Communications ? new InvalidOperationException("boom") : null;
+
+        c.Cycle();
+
+        Assert.Equal("a", a.Defaults[AudioRole.Multimedia]);
+        Assert.Equal("a", a.Defaults[AudioRole.Console]);
+        Assert.Equal("a", a.Defaults[AudioRole.Communications]);
+        Assert.Equal(0, cfg.CurrentIndex);
+        Assert.Single(s.ErrorToasts);
+    }
+
     [Fact]
     public void Cycle_SetDefaultThrows_DoesNotAdvanceIndex()
     {

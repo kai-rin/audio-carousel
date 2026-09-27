@@ -8,6 +8,8 @@ public sealed class CycleController
 {
     private static readonly AudioRole[] AllRoles =
         { AudioRole.Multimedia, AudioRole.Communications, AudioRole.Console };
+    private static readonly AudioRole[] NonCommunicationRoles =
+        { AudioRole.Multimedia, AudioRole.Console };
 
     private readonly ConfigSchema _config;
     private readonly IAudioDeviceService _audio;
@@ -96,14 +98,21 @@ public sealed class CycleController
     private void ApplySwitch(int targetIndex, bool healed)
     {
         var target = _config.Devices[targetIndex];
+        var roles = _config.SwitchCommunications ? AllRoles : NonCommunicationRoles;
 
+        var applied = new List<(AudioRole role, string? previous)>(roles.Length);
         try
         {
-            foreach (var role in AllRoles)
+            foreach (var role in roles)
+            {
+                string? previous = _audio.GetDefaultOutputId(role);
                 _audio.SetDefault(target.EndpointId, role);
+                applied.Add((role, previous));
+            }
         }
         catch (Exception)
         {
+            RollBack(applied);
             // The heal is a config repair independent of the switch outcome.
             if (healed) _persistConfig();
             _sink.ShowErrorToast(Strings.Get("error.switchFailed"));
@@ -114,5 +123,17 @@ public sealed class CycleController
         _persistConfig();
         _sink.ShowToast(target.DisplayName);
         _sink.NotifyCurrentDeviceChanged();
+    }
+
+    // Best-effort: put already-switched roles back so a partial failure
+    // doesn't leave playback and calls on different devices.
+    private void RollBack(List<(AudioRole role, string? previous)> applied)
+    {
+        foreach (var (role, previous) in applied)
+        {
+            if (previous is null) continue;
+            try { _audio.SetDefault(previous, role); }
+            catch (Exception) { /* nothing more we can do; the error toast follows */ }
+        }
     }
 }

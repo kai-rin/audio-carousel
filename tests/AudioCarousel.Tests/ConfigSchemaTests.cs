@@ -43,6 +43,40 @@ public class ConfigSchemaTests
         Assert.Equal(original.StartWithWindows, roundtripped.StartWithWindows);
     }
 
+    // Configs written before the option existed must keep today's behavior.
+    [Fact]
+    public void SwitchCommunications_MissingFromJson_DefaultsToTrue()
+    {
+        var loaded = JsonSerializer.Deserialize("{\"version\":1,\"devices\":[]}", ConfigJsonContext.Default.ConfigSchema);
+        Assert.True(loaded!.SwitchCommunications);
+    }
+
+    [Fact]
+    public void Clone_IsDeepCopy()
+    {
+        var original = new ConfigSchema
+        {
+            Language = "ja",
+            Hotkey = new HotkeyEntry { Modifiers = new() { "Ctrl" }, Key = "F16" },
+            Devices = new() { new DeviceEntry { EndpointId = "a", DisplayName = "A" } },
+            CurrentIndex = 0,
+            StartWithWindows = true,
+            SwitchCommunications = false,
+        };
+
+        var copy = original.Clone();
+        copy.Devices[0].EndpointId = "changed";
+        copy.Devices.Add(new DeviceEntry { EndpointId = "b" });
+        copy.Hotkey!.Modifiers.Add("Alt");
+
+        Assert.Equal("a", original.Devices[0].EndpointId);
+        Assert.Single(original.Devices);
+        Assert.Single(original.Hotkey!.Modifiers);
+        Assert.False(copy.SwitchCommunications);
+        Assert.True(copy.StartWithWindows);
+        Assert.Equal("ja", copy.Language);
+    }
+
     [Fact]
     public void Hotkey_CanBeNull()
     {
