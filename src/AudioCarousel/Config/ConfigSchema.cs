@@ -39,6 +39,11 @@ public sealed class ConfigSchema
     [JsonPropertyName("leftClickCycles")]
     public bool LeftClickCycles { get; set; } = true;
 
+    // Defaults for a config the app creates itself (first run / reset).
+    // Property initializers stay the "field missing in an older file" values,
+    // so existing users keep their behavior.
+    public static ConfigSchema NewInstallDefaults() => new() { LeftClickCycles = false };
+
     public ConfigSchema Clone() => new()
     {
         Version = Version,

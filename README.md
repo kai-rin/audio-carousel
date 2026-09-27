@@ -33,8 +33,8 @@ installer, single executable, portable configuration.
   calls (Teams, Discord, Zoom) follows the switch too; untick one
   option in Settings to keep your headset for calls while music and
   games move around.
-- **Tray-resident, mouse-friendly.** Left-click the tray icon to cycle
-  (same as the hotkey — or set it to open Settings instead). Right-click
+- **Tray-resident, mouse-friendly.** A left-click on the tray icon opens
+  Settings, or — if you turn it on — cycles like the hotkey. Right-click
   for a menu that lists your devices — click one to switch to it
   directly, plus Cycle next / previous, Settings, About, Exit.
 - **Flexible hotkeys.** Modifier combinations (`Ctrl+Alt+A`) and the
@@ -108,8 +108,9 @@ In the Settings window:
 6. **(Optional) Calls device.** Untick *Also switch the communications
    device* if calls should stay on the device you picked in Windows.
 7. **(Optional) Toast and left-click.** Turn off the switch
-   notification, or make a left-click on the tray icon open Settings
-   instead of switching.
+   notification, or let a left-click on the tray icon switch devices
+   (off by default, so a stray click can't change your audio
+   mid-meeting — it opens Settings instead).
 8. Click **OK**. A notification points out the tray icon and how to use
    it. On Windows 11 new tray icons start in the overflow flyout (the
    `^` next to the clock) — drag it onto the taskbar to keep it
@@ -120,8 +121,9 @@ In the Settings window:
 - **Press the hotkey** from any app → audio jumps to the next device
   on your list (the *Previous device* hotkey goes back). A toast at the
   bottom-right of the monitor your mouse is on confirms the switch.
-- **Left-click the tray icon** does the same as pressing the hotkey
-  (or opens Settings, if you chose that).
+- **Left-click the tray icon** opens Settings — or switches like the
+  hotkey, if you turned that on. (Configs from before this option keep
+  switching on left-click.)
 - **Hover the tray icon** to see the current output — it stays accurate
   even when Windows or another app changes the device.
 - **Launch `AudioCarousel.exe` again** to bring up Settings of the copy
@@ -144,7 +146,7 @@ In the Settings window:
   used; individual bad entries are ignored. If the file can't be read
   at all (e.g. another program has it locked), the app runs with
   defaults for that session and never overwrites your file.
-- **Registry:** the only write is to
+- **Registry:** Audio Carousel writes one value under
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` when
   *Start with Windows* is on. Turning it off removes the entry. If you
   disabled the app in Task Manager's *Startup apps*, Audio Carousel shows

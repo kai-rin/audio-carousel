@@ -158,6 +158,7 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         using var form = new SettingsForm(_config, _audio, firstRun, IsStartupEnabled())
         {
             HotkeyRegistrationProbe = ProbeHotkeys,
+            SuggestedHotkey = firstRun && _config.Hotkey is null ? FindFreeHotkey() : null,
         };
         _openSettings = form;
         DialogResult result;
@@ -208,14 +209,33 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         if (firstRun) ShowRunningBalloon();
     }
 
+    // First free combination from a short list of rarely used ones.
+    private static HotkeySpec? FindFreeHotkey()
+    {
+        var mods = HotkeyModifier.Control | HotkeyModifier.Alt;
+        foreach (var key in new[] { Keys.F9, Keys.F10, Keys.F11, Keys.F12 })
+        {
+            var spec = new HotkeySpec(mods, key);
+            using var probe = new HotkeyHost();
+            if (probe.TryRegister(spec, () => { }) == HotkeyRegisterResult.Ok) return spec;
+        }
+        return null;
+    }
+
     // The tray icon is easy to lose (Windows 11 starts new icons in the
     // overflow flyout), so say once where the app went and how to use it.
     private void ShowRunningBalloon()
     {
         var spec = HotkeyParser.FromConfigEntry(_config.Hotkey);
-        string text = spec is HotkeySpec s
-            ? string.Format(Strings.Get("balloon.withHotkey"), HotkeyParser.FormatForDisplay(s))
-            : Strings.Get("balloon.noHotkey");
+        string text;
+        if (_config.Devices.Count == 0)
+            text = Strings.Get("balloon.noDevices");
+        else if (spec is HotkeySpec s)
+            text = string.Format(Strings.Get("balloon.withHotkey"), HotkeyParser.FormatForDisplay(s));
+        else if (_config.LeftClickCycles)
+            text = Strings.Get("balloon.noHotkey");
+        else
+            text = Strings.Get("balloon.noHotkeyMenu");
         _tray.ShowBalloon(Strings.Get("balloon.title"), text);
     }
 

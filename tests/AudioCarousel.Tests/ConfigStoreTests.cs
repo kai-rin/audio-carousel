@@ -37,6 +37,9 @@ public class ConfigStoreTests : IDisposable
         Assert.Empty(config.Devices);
         Assert.Equal(0, config.CurrentIndex);
         Assert.False(config.StartWithWindows);
+        // New installs: a stray left-click opens Settings instead of switching
+        // audio mid-meeting. (Older files without the field keep cycling.)
+        Assert.False(config.LeftClickCycles);
     }
 
     [Fact]

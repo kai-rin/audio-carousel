@@ -21,7 +21,7 @@ public sealed class ConfigStore
 
             if (!File.Exists(_path))
             {
-                var defaults = new ConfigSchema();
+                var defaults = ConfigSchema.NewInstallDefaults();
                 TrySaveInternal(defaults);
                 return new ConfigLoadResult(defaults, FreshlyCreated: true, WasCorrupted: false, WasUnreadable: false);
             }
@@ -55,7 +55,7 @@ public sealed class ConfigStore
                     File.Move(_path, backup);
                 }
                 catch { /* best-effort backup; still recover with defaults */ }
-                var defaults = new ConfigSchema();
+                var defaults = ConfigSchema.NewInstallDefaults();
                 TrySaveInternal(defaults);
                 return new ConfigLoadResult(defaults, FreshlyCreated: true, WasCorrupted: true, WasUnreadable: false);
             }

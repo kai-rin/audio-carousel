@@ -47,6 +47,11 @@ public sealed class SettingsForm : Form
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<HotkeySpec?, HotkeySpec?, HotkeyProbeResult>? HotkeyRegistrationProbe { get; set; }
 
+    // Pre-filled into an empty "Next device" box on first run, so the
+    // common path is just "add devices, press OK".
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public HotkeySpec? SuggestedHotkey { get; set; }
+
     public SettingsForm(ConfigSchema current, IAudioDeviceService audio, bool isFirstRun, bool startupEnabled)
     {
         _audio = audio;
@@ -247,6 +252,8 @@ public sealed class SettingsForm : Form
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
+        if (_isFirstRun && _nextBox.Value is null && SuggestedHotkey is HotkeySpec suggestion)
+            _nextBox.Value = suggestion;
         // DeviceDpi is final here, so the status dots match the list's scale.
         BuildStatusImages();
         FitHints();
