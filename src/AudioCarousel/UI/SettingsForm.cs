@@ -12,7 +12,7 @@ public sealed class SettingsForm : Form
 {
     // Logical (96-DPI) sizes; AutoScaleMode.Dpi scales them to the monitor.
     private const int ContentWidth = 560;
-    private const int ListHeight = 150;
+    private const int ListHeight = 132;
 
     private readonly IAudioDeviceService _audio;
     private readonly IAudioDeviceService _inputAudio;
@@ -431,16 +431,38 @@ public sealed class SettingsForm : Form
         }
     }
 
-    private static Button NewButton(string key, string suffix = "") => new()
+    private static Button NewButton(string key, string suffix = "")
     {
-        Text = Strings.Get(key) + suffix,
-        AutoSize = true,
-        AutoSizeMode = AutoSizeMode.GrowAndShrink,
-        MinimumSize = new Size(88, 30),
-        Padding = new Padding(8, 0, 8, 0),
-        Margin = new Padding(0, 0, 6, 0),
-        UseVisualStyleBackColor = true,
-    };
+        var button = new Button
+        {
+            Text = Strings.Get(key) + suffix,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(88, 30),
+            Padding = new Padding(8, 0, 8, 0),
+            Margin = new Padding(0, 0, 6, 0),
+            UseVisualStyleBackColor = true,
+        };
+        button.EnabledChanged += (_, _) => button.Invalidate();
+        button.Paint += PaintDisabled;
+        return button;
+    }
+
+    // Native buttons barely change when disabled in dark mode (and ignore
+    // BackColor there), so draw the disabled state ourselves: no fill, a thin
+    // outline and dim text — unmistakably "not available".
+    private static void PaintDisabled(object? sender, PaintEventArgs e)
+    {
+        if (sender is not Button { Enabled: false } button) return;
+        var g = e.Graphics;
+        g.Clear(button.Parent?.BackColor ?? SystemColors.Control);
+        var rect = new Rectangle(0, 0, button.Width - 1, button.Height - 1);
+        rect.Inflate(-1, -1);
+        using (var pen = new Pen(SystemColors.ControlDark))
+            g.DrawRectangle(pen, rect);
+        TextRenderer.DrawText(g, button.Text, button.Font, button.ClientRectangle, SystemColors.GrayText,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
+    }
 
     private void BuildStatusImages()
     {

@@ -111,10 +111,20 @@ public sealed class FluentMenuRenderer : ToolStripProfessionalRenderer
         base.OnRenderItemText(e);
     }
 
+    // Fluent chevron instead of the classic WinForms triangle.
     protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
     {
-        e.ArrowColor = _p.Text;
-        base.OnRenderArrow(e);
+        var color = e.Item is { Enabled: false } ? _p.Dim : _p.Text;
+        int size = Math.Max(8, e.ArrowRectangle.Height * 2 / 3);
+        using var glyph = MenuGlyphs.Render(MenuGlyphs.ChevronRight, size, color);
+        if (glyph is null)
+        {
+            e.ArrowColor = color;
+            base.OnRenderArrow(e);
+            return;
+        }
+        var r = e.ArrowRectangle;
+        e.Graphics.DrawImage(glyph, r.X + (r.Width - size) / 2, r.Y + (r.Height - size) / 2);
     }
 
     protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)

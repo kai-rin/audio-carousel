@@ -11,16 +11,17 @@ namespace AudioCarousel.UI;
 public static class MenuGlyphs
 {
     // Code points shared by both fonts.
-    public const char Speaker = '';
-    public const char Microphone = '';
-    public const char Next = '';      // Refresh (clockwise loop)
-    public const char Previous = '';  // Undo (counter-clockwise)
-    public const char Settings = '';
-    public const char Info = '';
-    public const char Exit = '';      // Power
-    public const char Warning = '';
-    public const char Close = '';
-    public const char Check = '';
+    public const char Speaker = '\uE767';
+    public const char Microphone = '\uE720';
+    public const char Next = '\uE72C';      // Refresh (clockwise loop)
+    public const char Previous = '\uE7A7';  // Undo (counter-clockwise)
+    public const char Settings = '\uE713';
+    public const char Info = '\uE946';
+    public const char Exit = '\uE7E8';      // Power
+    public const char Warning = '\uE7BA';
+    public const char Close = '\uE8BB';
+    public const char Check = '\uE73E';
+    public const char ChevronRight = '\uE76C';
 
     private static readonly Lazy<string?> FontName = new(() =>
     {
