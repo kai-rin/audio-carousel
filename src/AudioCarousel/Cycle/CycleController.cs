@@ -28,7 +28,12 @@ public sealed class CycleController
         _persistConfig = persistConfig;
     }
 
-    public void Cycle()
+    public void Cycle() => Step(+1);
+
+    /// <summary>Same as <see cref="Cycle"/>, walking the list backwards.</summary>
+    public void CyclePrevious() => Step(-1);
+
+    private void Step(int direction)
     {
         if (_config.Devices.Count == 0)
         {
@@ -44,7 +49,7 @@ public sealed class CycleController
             live.Select(d => d.EndpointId),
             StringComparer.Ordinal);
 
-        // Sync currentIndex with OS reality before advancing.
+        // Sync currentIndex with OS reality before moving.
         string? currentDefault = _audio.GetDefaultOutputId(AudioRole.Multimedia);
         if (currentDefault is not null)
         {
@@ -53,11 +58,10 @@ public sealed class CycleController
         }
 
         int count = _config.Devices.Count;
-        int startIndex = (_config.CurrentIndex + 1) % count;
         int targetIndex = -1;
-        for (int offset = 0; offset < count; offset++)
+        for (int offset = 1; offset <= count; offset++)
         {
-            int i = (startIndex + offset) % count;
+            int i = ((_config.CurrentIndex + direction * offset) % count + count) % count;
             if (available.Contains(_config.Devices[i].EndpointId))
             {
                 targetIndex = i;

@@ -262,6 +262,38 @@ public class CycleControllerTests
         Assert.Equal(1, saves.Count);
     }
 
+    [Fact]
+    public void CyclePrevious_GoesBackAndWraps()
+    {
+        var (c, _, s, cfg, _) = Build(("a", "A", true), ("b", "B", true), ("c", "C", true));
+        cfg.CurrentIndex = 1;
+        c.CyclePrevious();
+        Assert.Equal(0, cfg.CurrentIndex);
+        Assert.Equal("A", s.Toasts[^1]);
+        c.CyclePrevious();
+        Assert.Equal(2, cfg.CurrentIndex);
+        Assert.Equal("C", s.Toasts[^1]);
+    }
+
+    [Fact]
+    public void CyclePrevious_SkipsOfflineDevices()
+    {
+        var (c, _, _, cfg, _) = Build(("a", "A", true), ("b", "B", false), ("c", "C", true));
+        cfg.CurrentIndex = 2;
+        c.CyclePrevious();
+        Assert.Equal(0, cfg.CurrentIndex);
+    }
+
+    [Fact]
+    public void CyclePrevious_SyncsWithOsDefaultFirst()
+    {
+        var (c, a, _, cfg, _) = Build(("a", "A", true), ("b", "B", true), ("c", "C", true));
+        cfg.CurrentIndex = 0;
+        a.Defaults[AudioRole.Multimedia] = "c";
+        c.CyclePrevious();
+        Assert.Equal(1, cfg.CurrentIndex);
+    }
+
     // Users who keep a dedicated headset for calls (Teams/Discord use the
     // Communications role) can opt out of having it switched.
     [Fact]
