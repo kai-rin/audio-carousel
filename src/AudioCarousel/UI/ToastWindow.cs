@@ -3,33 +3,51 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Windows.Forms.Automation;
+using AudioCarousel.I18n;
 
 namespace AudioCarousel.UI;
 
+/// <summary>
+/// The switch notification: navy card with a colored accent bar, icon, app
+/// caption, bold title and a subtitle, plus a close glyph. Same design as
+/// promo/src/components/Toast.tsx (the README hero image renders that).
+/// Never takes focus; a click anywhere dismisses it, hovering pauses it.
+/// </summary>
 public sealed class ToastWindow : Form
 {
     private const int FadeMs = 200;
-    private const int HoldMs = 1500;
+    private const int HoldMs = 2200;
     private const int TickMs = 16;
 
     // Layout in 96-DPI units; scaled to the target monitor's DPI on each show.
     private const int EdgeMargin = 16;
-    private const int PadX = 24;
+    private const int AccentWidth = 5;
+    private const int PadX = 18;
     private const int PadY = 14;
-    private const int MaxWidth = 600;
+    private const int IconBox = 36;
+    private const int IconGap = 14;
+    private const int CloseBox = 28;
+    private const int MinTextWidth = 200;
+    private const int MaxTextWidth = 380;
     private const int CornerRadius = 8;
-    private const float FontPx = 16f; // 12pt at 96 DPI
 
-    private static readonly Color NormalBack = Color.FromArgb(28, 28, 30);
-    private static readonly Color ErrorBack = Color.FromArgb(120, 28, 28);
+    private static readonly Color Back = Color.FromArgb(0x10, 0x1C, 0x36);      // navy
+    private static readonly Color Accent = Color.FromArgb(0x25, 0x63, 0xEB);    // blue
+    private static readonly Color ErrorAccent = Color.FromArgb(0xEF, 0x44, 0x44);
+    private static readonly Color Sub = Color.FromArgb(0xAF, 0xBD, 0xD6);
+    private static readonly Color ErrorIcon = Color.FromArgb(0xFC, 0xA5, 0xA5);
 
     private readonly System.Windows.Forms.Timer _holdTimer;
     private readonly System.Windows.Forms.Timer _fadeTimer;
-    private string _text = "";
+    private ToastContent _content = new("", null, MenuGlyphs.Speaker, false);
     private FadeState _state = FadeState.Hidden;
-    private Font? _font;
-    private int _padX = PadX;
-    private int _padY = PadY;
+    private float _scale = 1f;
+    private Font? _captionFont;
+    private Font? _titleFont;
+    private Font? _subFont;
+    private Bitmap? _icon;
+    private Bitmap? _close;
+    private Rectangle _iconRect, _captionRect, _titleRect, _subRect, _closeRect;
 
     private enum FadeState { Hidden, FadingIn, Holding, FadingOut }
 
@@ -42,9 +60,10 @@ public sealed class ToastWindow : Form
         AutoScaleMode = AutoScaleMode.None;
         DoubleBuffered = true;
         Opacity = 0;
-        BackColor = NormalBack;
+        BackColor = Back;
         ForeColor = Color.White;
         AccessibleRole = AccessibleRole.Alert;
+        Cursor = Cursors.Hand;
 
         _holdTimer = new System.Windows.Forms.Timer { Interval = HoldMs };
         _holdTimer.Tick += (_, _) => { _holdTimer.Stop(); StartFadeOut(); };
@@ -65,11 +84,10 @@ public sealed class ToastWindow : Form
 
     protected override bool ShowWithoutActivation => true;
 
-    public void ShowMessage(string text, bool isError = false)
+    public void ShowContent(ToastContent content)
     {
-        _text = text;
-        AccessibleName = text;
-        BackColor = isError ? ErrorBack : NormalBack;
+        _content = content;
+        AccessibleName = content.Subtitle is null ? content.Title : $"{content.Title}. {content.Subtitle}";
         LayoutOnActiveMonitor();
 
         if (_state == FadeState.Hidden)
@@ -81,7 +99,7 @@ public sealed class ToastWindow : Form
         }
         else
         {
-            // Already on screen — replace text and reset hold.
+            // Already on screen — replace content and reset hold.
             _fadeTimer.Stop();
             _holdTimer.Stop();
             _state = FadeState.Holding;
@@ -95,40 +113,134 @@ public sealed class ToastWindow : Form
         AccessibilityObject.RaiseAutomationNotification(
             AutomationNotificationKind.Other,
             AutomationNotificationProcessing.ImportantMostRecent,
-            text);
+            AccessibleName);
     }
+
+    private int S(int logical) => (int)Math.Round(logical * _scale);
 
     private void LayoutOnActiveMonitor()
     {
         var cursor = Cursor.Position;
         var work = Screen.FromPoint(cursor).WorkingArea;
-        float scale = GetDpiForPoint(cursor) / 96f;
+        _scale = GetDpiForPoint(cursor) / 96f;
 
-        var oldFont = _font;
-        _font = new Font("Segoe UI", FontPx * scale, FontStyle.Regular, GraphicsUnit.Pixel);
-        Font = _font;
-        oldFont?.Dispose();
+        ReplaceFonts();
+        ReplaceBitmaps();
 
-        _padX = (int)Math.Round(PadX * scale);
-        _padY = (int)Math.Round(PadY * scale);
-        int maxWidth = (int)Math.Round(MaxWidth * scale);
-        int margin = (int)Math.Round(EdgeMargin * scale);
+        const TextFormatFlags oneLine = TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
+        const TextFormatFlags wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
+        string caption = Strings.Get("app.title");
+        int maxText = S(MaxTextWidth);
 
-        // Measure with the same GDI text engine used for drawing so the
-        // computed width never truncates the text it was measured for.
-        var flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPadding;
-        var size = TextRenderer.MeasureText(_text, _font, new Size(int.MaxValue, int.MaxValue), flags);
-        int width = Math.Min(maxWidth, size.Width + _padX * 2);
-        int height = size.Height + _padY * 2;
+        var captionSize = TextRenderer.MeasureText(caption, _captionFont, new Size(maxText, int.MaxValue), oneLine);
+        // Titles (device names, error messages) may wrap to a second line.
+        var titleSize = TextRenderer.MeasureText(_content.Title, _titleFont, new Size(maxText, int.MaxValue), wrap);
+        var subSize = _content.Subtitle is null
+            ? Size.Empty
+            : TextRenderer.MeasureText(_content.Subtitle, _subFont, new Size(maxText, int.MaxValue), oneLine);
+        int textWidth = Math.Clamp(Math.Max(captionSize.Width, Math.Max(titleSize.Width, subSize.Width)), S(MinTextWidth), maxText);
+        int titleHeight = Math.Min(titleSize.Height, _titleFont!.Height * 2);
 
+        int left = S(AccentWidth) + S(PadX);
+        int textLeft = left + S(IconBox) + S(IconGap);
+        int y = S(PadY);
+        _captionRect = new Rectangle(textLeft, y, textWidth, captionSize.Height);
+        y += captionSize.Height + S(2);
+        _titleRect = new Rectangle(textLeft, y, textWidth, titleHeight);
+        y += titleHeight;
+        if (_content.Subtitle is not null)
+        {
+            y += S(2);
+            _subRect = new Rectangle(textLeft, y, textWidth, subSize.Height);
+            y += subSize.Height;
+        }
+        else
+        {
+            _subRect = Rectangle.Empty;
+        }
+        int height = y + S(PadY);
+        int width = textLeft + textWidth + S(CloseBox) + S(6);
+
+        _iconRect = new Rectangle(left, (height - S(IconBox)) / 2, S(IconBox), S(IconBox));
+        _closeRect = new Rectangle(width - S(CloseBox) - S(4), S(4), S(CloseBox), S(CloseBox));
+
+        int margin = S(EdgeMargin);
         SetBounds(work.Right - width - margin, work.Bottom - height - margin, width, height);
 
         // Clip the window itself to the rounded shape; painting a rounded
         // rectangle on a same-colored rectangular window shows no corners.
-        using var path = RoundedRect(new Rectangle(0, 0, width, height), (int)Math.Round(CornerRadius * scale));
+        using var path = RoundedRect(new Rectangle(0, 0, width, height), S(CornerRadius));
         var oldRegion = Region;
         Region = new Region(path);
         oldRegion?.Dispose();
+        Invalidate();
+    }
+
+    private void ReplaceFonts()
+    {
+        _captionFont?.Dispose();
+        _titleFont?.Dispose();
+        _subFont?.Dispose();
+        _captionFont = new Font("Segoe UI", 12f * _scale, FontStyle.Regular, GraphicsUnit.Pixel);
+        _titleFont = new Font("Segoe UI Semibold", 17f * _scale, FontStyle.Regular, GraphicsUnit.Pixel);
+        _subFont = new Font("Segoe UI", 13f * _scale, FontStyle.Regular, GraphicsUnit.Pixel);
+    }
+
+    private void ReplaceBitmaps()
+    {
+        _icon?.Dispose();
+        _close?.Dispose();
+        _icon = MenuGlyphs.Render(_content.Glyph, S(IconBox), _content.IsError ? ErrorIcon : Color.White);
+        _close = MenuGlyphs.Render(MenuGlyphs.Close, S(12), Sub);
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        using (var accent = new SolidBrush(_content.IsError ? ErrorAccent : Accent))
+            g.FillRectangle(accent, 0, 0, S(AccentWidth), Height);
+
+        if (_icon is not null) g.DrawImage(_icon, _iconRect);
+        if (_close is not null)
+        {
+            g.DrawImage(_close,
+                _closeRect.X + (_closeRect.Width - _close.Width) / 2,
+                _closeRect.Y + (_closeRect.Height - _close.Height) / 2);
+        }
+
+        TextRenderer.DrawText(g, Strings.Get("app.title"), _captionFont, _captionRect, Sub,
+            TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, _content.Title, _titleFont, _titleRect, Color.White,
+            TextFormatFlags.WordBreak | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        if (_content.Subtitle is not null)
+        {
+            TextRenderer.DrawText(g, _content.Subtitle, _subFont, _subRect, Sub,
+                TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        }
+    }
+
+    // Click anywhere (the × included) to dismiss.
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (_state is FadeState.FadingIn or FadeState.Holding)
+        {
+            _holdTimer.Stop();
+            StartFadeOut();
+        }
+    }
+
+    // Hovering keeps it up so it can be read (or dismissed) at leisure.
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        if (_state == FadeState.Holding) _holdTimer.Stop();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        if (_state == FadeState.Holding) _holdTimer.Start();
     }
 
     // Layout is recomputed for the target monitor on every show; don't let
@@ -156,7 +268,7 @@ public sealed class ToastWindow : Form
                 {
                     _fadeTimer.Stop();
                     _state = FadeState.Holding;
-                    _holdTimer.Start();
+                    if (!ClientRectangle.Contains(PointToClient(Cursor.Position))) _holdTimer.Start();
                 }
                 break;
             case FadeState.FadingOut:
@@ -169,14 +281,6 @@ public sealed class ToastWindow : Form
                 }
                 break;
         }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var rect = new Rectangle(_padX, _padY, Width - _padX * 2, Height - _padY * 2);
-        TextRenderer.DrawText(e.Graphics, _text, Font, rect, ForeColor,
-            TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.Left
-            | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
     private static GraphicsPath RoundedRect(Rectangle r, int radius)
@@ -207,7 +311,11 @@ public sealed class ToastWindow : Form
         {
             _holdTimer.Dispose();
             _fadeTimer.Dispose();
-            _font?.Dispose();
+            _captionFont?.Dispose();
+            _titleFont?.Dispose();
+            _subFont?.Dispose();
+            _icon?.Dispose();
+            _close?.Dispose();
             Region?.Dispose();
         }
         base.Dispose(disposing);

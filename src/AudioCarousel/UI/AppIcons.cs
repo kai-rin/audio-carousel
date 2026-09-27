@@ -1,0 +1,25 @@
+using System.Drawing;
+using System.Reflection;
+
+namespace AudioCarousel.UI;
+
+/// <summary>
+/// The embedded icons generated from promo's IconSheet (scripts/build-icons.py):
+/// app.ico (light tile, for windows and the exe) and tray-light/tray-dark.ico
+/// (bare glyph for each taskbar theme).
+/// </summary>
+public static class AppIcons
+{
+    public static Icon App(Size size) => Load("app.ico", size);
+
+    public static Icon Tray(bool lightTaskbar, Size size) =>
+        Load(lightTaskbar ? "tray-light.ico" : "tray-dark.ico", size);
+
+    private static Icon Load(string file, Size size)
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        using var stream = asm.GetManifestResourceStream($"AudioCarousel.Resources.{file}");
+        // Picks the closest frame, so small sizes get the hand-simplified mark.
+        return stream is null ? (Icon)SystemIcons.Application.Clone() : new Icon(stream, size);
+    }
+}

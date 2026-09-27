@@ -156,9 +156,7 @@ public sealed class CycleController
 
         CurrentIndex = targetIndex;
         _persistConfig();
-        // Mark microphone switches so they can't be mistaken for output ones.
-        // (Plain text, not an emoji: the toast draws with GDI, which has no color glyphs.)
-        _sink.ShowToast(_target == CycleTarget.Input ? MicrophoneLabel(target.DisplayName) : target.DisplayName);
+        _sink.ShowToast(target.DisplayName, _target == CycleTarget.Input ? ToastKind.Input : ToastKind.Output);
         _sink.NotifyCurrentDeviceChanged();
     }
 

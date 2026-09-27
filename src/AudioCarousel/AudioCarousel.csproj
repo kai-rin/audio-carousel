@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>AudioCarousel</RootNamespace>
     <AssemblyName>AudioCarousel</AssemblyName>
-    <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
     <!-- Read by ApplicationConfiguration.Initialize(); sharp text on mixed-DPI setups. -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
@@ -30,7 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\tray.ico" />
+    <!-- Generated from promo/src/icon/IconSheet.tsx by scripts/build-icons.py -->
+    <EmbeddedResource Include="Resources\app.ico" />
+    <EmbeddedResource Include="Resources\tray-light.ico" />
+    <EmbeddedResource Include="Resources\tray-dark.ico" />
   </ItemGroup>
 
 </Project>

@@ -77,6 +77,7 @@ public sealed class SettingsForm : Form
         Font = _baseFont;
 
         Text = Strings.Get(isFirstRun ? "settings.titleFirstRun" : "settings.title");
+        Icon = AppIcons.App(SystemInformation.IconSize);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
@@ -707,6 +708,7 @@ public sealed class SettingsForm : Form
         {
             // After the controls that reference them are gone.
             _addMenu.Dispose();
+            Icon?.Dispose();
             _statusImages.Dispose();
             _boldFont.Dispose();
             _baseFont.Dispose();

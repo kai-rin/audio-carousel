@@ -317,7 +317,8 @@ public class CycleControllerTests
         Assert.Equal(1, cfg.InputCurrentIndex);
         Assert.Equal(0, cfg.CurrentIndex);
         Assert.All(audio.SetCalls, call => Assert.Equal("mic2", call.id));
-        Assert.Contains("Mic 2", sink.Toasts[^1]);
+        Assert.Equal("Mic 2", sink.Toasts[^1]);
+        Assert.Equal(ToastKind.Input, sink.ToastKinds[^1]);
     }
 
     // Windows already names most microphones "Microphone (...)" / "マイク (...)";
@@ -405,8 +406,13 @@ public class CycleControllerTests
 internal sealed class FakeCycleSink : ICycleSink
 {
     public List<string> Toasts { get; } = new();
+    public List<ToastKind> ToastKinds { get; } = new();
     public List<string> ErrorToasts { get; } = new();
-    public void ShowToast(string text) => Toasts.Add(text);
+    public void ShowToast(string deviceName, ToastKind kind)
+    {
+        Toasts.Add(deviceName);
+        ToastKinds.Add(kind);
+    }
     public void ShowErrorToast(string text) => ErrorToasts.Add(text);
     public void NotifyCurrentDeviceChanged() { }
 }

@@ -307,12 +307,21 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
         var prevFailure = Register(_prevHotkeyHost, _config.HotkeyPrevious, () => _cycle.CyclePrevious());
         var inputFailure = Register(_inputHotkeyHost, _config.HotkeyInput, () => _inputCycle.Cycle());
         var failure = nextFailure ?? prevFailure ?? inputFailure;
+        UpdateHotkeyLabels();
         if (failure is HotkeyRegisterResult f && showErrors)
         {
             MessageBox.Show(Strings.Get(HotkeyErrorKey(f)),
                 Strings.Get("app.title"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         return failure;
+    }
+
+    // Menu shortcut texts in the current UI language (modifier names are localized).
+    private void UpdateHotkeyLabels()
+    {
+        static string? Label(HotkeyEntry? entry) =>
+            HotkeyParser.FromConfigEntry(entry) is HotkeySpec spec ? HotkeyParser.FormatForDisplay(spec) : null;
+        _tray.SetHotkeyLabels(Label(_config.Hotkey), Label(_config.HotkeyPrevious), Label(_config.HotkeyInput));
     }
 
     private static HotkeyRegisterResult? Register(HotkeyHost host, HotkeyEntry? entry, Action onHotkey)
@@ -381,13 +390,14 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
 
     private void ShowAbout()
     {
+        using var appIcon = AppIcons.App(SystemInformation.IconSize);
         var page = new TaskDialogPage
         {
             Caption = Strings.Get("tray.about"),
             Heading = $"{Strings.Get("app.title")} {AppVersion.Display}",
             Text = $"{Strings.Get("about.body")}\n\n<a href=\"{RepoUrl}\">{RepoUrl}</a>",
             EnableLinks = true,
-            Icon = TaskDialogIcon.Information,
+            Icon = new TaskDialogIcon(appIcon),
             Buttons = { TaskDialogButton.OK },
         };
         page.LinkClicked += (_, e) =>
@@ -469,11 +479,11 @@ internal sealed class TrayApplicationContext : ApplicationContext, ICycleSink
     }
 
     // === ICycleSink ===
-    public void ShowToast(string text)
+    public void ShowToast(string deviceName, ToastKind kind)
     {
         // Errors always show; the success toast is optional.
-        if (_config.ShowToast) _toast.ShowMessage(text);
+        if (_config.ShowToast) _toast.ShowContent(ToastContent.ForSwitch(deviceName, kind));
     }
-    public void ShowErrorToast(string text) => _toast.ShowMessage(text, isError: true);
+    public void ShowErrorToast(string text) => _toast.ShowContent(ToastContent.ForError(text));
     public void NotifyCurrentDeviceChanged() => RefreshTrayCurrentLabel();
 }
