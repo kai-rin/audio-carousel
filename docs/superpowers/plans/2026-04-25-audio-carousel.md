@@ -1,5 +1,11 @@
 # Audio Carousel Implementation Plan
 
+> **Historical document (v1.0.0 plan).** Kept for context only; it no longer
+> describes the current code. Notably: NativeAOT and trimming were abandoned
+> (see CLAUDE.md "Critical gotchas"), the app now targets .NET 10, and later
+> features (endpoint-ID self-healing, tray device list, config normalization)
+> are not covered here. CLAUDE.md and the source are authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a lightweight Windows tray utility (single .exe, no installer) that cycles the system default audio output through a user-configured device list via a global hotkey, with a brief on-screen toast on each switch.

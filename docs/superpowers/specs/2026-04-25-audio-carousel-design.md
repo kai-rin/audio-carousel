@@ -1,5 +1,9 @@
 # Audio Carousel — Design Spec
 
+> **Historical document (v1.0.0 design).** The shipped app has diverged
+> (no NativeAOT/trimming, .NET 10, endpoint-ID self-healing, tray device
+> list, hotkey validation). CLAUDE.md and the source are authoritative.
+
 - **Date:** 2026-04-25
 - **Status:** Draft (awaiting user approval)
 - **Inspiration:** [PeekDesktop](https://github.com/shanselman/PeekDesktop) (no installer, single .exe, lightweight tray app)

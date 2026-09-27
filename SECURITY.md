@@ -19,7 +19,10 @@ For non-security bugs, use the regular issue tracker.
 ## Threat Model — what Audio Carousel does and does not do
 
 - Runs entirely on the local machine. **No network requests** of any kind.
-- Reads `audio-carousel.json` from the directory next to the executable.
+- Reads and writes `audio-carousel.json` in the directory next to the
+  executable. Saves go through a short-lived `audio-carousel.json.tmp`; a
+  config that fails to parse is kept as `audio-carousel.json.bak` before
+  defaults are restored. Nothing is written anywhere else on disk.
 - Writes a single `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value
   if (and only if) "Start with Windows" is enabled by the user.
 - Calls the undocumented Windows COM interface `IPolicyConfig` to switch the
