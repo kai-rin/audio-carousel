@@ -20,6 +20,7 @@ public sealed class SettingsForm : Form
     private readonly Font _boldFont;
     private readonly ContextMenuStrip _addMenu = new();
     private readonly ImageList _statusImages = new() { ColorDepth = ColorDepth.Depth32Bit };
+    private readonly List<Label> _hints = new();
 
     private readonly HotkeyTextBox _hotkeyBox;
     private readonly Button _hotkeyClearBtn;
@@ -93,7 +94,7 @@ public sealed class SettingsForm : Form
         hotkeyRow.Controls.Add(_hotkeyBox, 1, 0);
         hotkeyRow.Controls.Add(_hotkeyClearBtn, 2, 0);
         root.Controls.Add(hotkeyRow);
-        root.Controls.Add(NewHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
+        root.Controls.Add(AddHint(Strings.Get("settings.hotkeyHint"), topMargin: 2));
 
         // --- Devices -------------------------------------------------------
         root.Controls.Add(new Label
@@ -103,7 +104,7 @@ public sealed class SettingsForm : Form
             Font = _boldFont,
             Margin = new Padding(0, 16, 0, 2),
         });
-        root.Controls.Add(NewHint(Strings.Get("settings.devicesHint"), topMargin: 0));
+        root.Controls.Add(AddHint(Strings.Get("settings.devicesHint"), topMargin: 0));
 
         _devicesList = new ListView
         {
@@ -228,7 +229,8 @@ public sealed class SettingsForm : Form
         base.OnLoad(e);
         // DeviceDpi is final here, so the status dots match the list's scale.
         BuildStatusImages();
-        RefreshDevicesList();
+        FitHints();
+        RefreshDevicesList(selectIndex: InitialSelection());
         FitColumn();
         // Start on the device list, never on the hotkey box: keyboard users
         // pressing Enter should hit OK, not start hotkey capture.
@@ -247,6 +249,7 @@ public sealed class SettingsForm : Form
     {
         base.OnDpiChanged(e);
         BuildStatusImages();
+        FitHints();
         RefreshDevicesList();
         FitColumn();
     }
@@ -261,14 +264,31 @@ public sealed class SettingsForm : Form
         Margin = Padding.Empty,
     };
 
-    private static Label NewHint(string text, int topMargin) => new()
+    private Label AddHint(string text, int topMargin)
     {
-        Text = text,
-        AutoSize = true,
-        MaximumSize = new Size(ContentWidth, 0),
-        ForeColor = SystemColors.GrayText,
-        Margin = new Padding(0, topMargin, 0, 0),
-    };
+        var label = new Label
+        {
+            Text = text,
+            AutoSize = true,
+            MaximumSize = new Size(ContentWidth, 0),
+            ForeColor = SystemColors.GrayText,
+            Margin = new Padding(0, topMargin, 0, 0),
+        };
+        _hints.Add(label);
+        return label;
+    }
+
+    // Wrap hints at the list's real (DPI-scaled) width. GDI (TextRenderer)
+    // word-wrapping broke Russian text mid-word here, so hints lay out with
+    // GDI+, which only breaks between words.
+    private void FitHints()
+    {
+        foreach (var hint in _hints)
+        {
+            hint.UseCompatibleTextRendering = true;
+            hint.MaximumSize = new Size(_devicesList.Width, 0);
+        }
+    }
 
     private static Button NewButton(string key, string suffix = "") => new()
     {
@@ -354,6 +374,16 @@ public sealed class SettingsForm : Form
             _devicesList.EnsureVisible(i);
         }
         UpdateButtons();
+    }
+
+    // Select the device that's playing now (or the first one) so arrow keys
+    // and Delete work immediately.
+    private int InitialSelection()
+    {
+        if (_workingCopy.Devices.Count == 0) return -1;
+        string? current = _audio.GetDefaultOutputId(AudioRole.Multimedia);
+        int idx = _workingCopy.Devices.FindIndex(d => d.EndpointId == current);
+        return idx >= 0 ? idx : 0;
     }
 
     private int SelectedIndex =>

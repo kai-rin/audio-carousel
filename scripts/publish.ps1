@@ -16,6 +16,24 @@ $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $PublishDir  = Join-Path $ProjectRoot 'publish'
 
+$PublishedExe = Join-Path $PublishDir 'AudioCarousel.exe'
+$ConfigPath   = Join-Path $PublishDir 'audio-carousel.json'
+
+# The exe in publish/ may be the maintainer's daily-driver instance; wiping the
+# folder under it fails half-way with a confusing file-in-use error.
+$running = Get-Process -Name AudioCarousel -ErrorAction SilentlyContinue |
+  Where-Object { $_.Path -and ([IO.Path]::GetFullPath($_.Path) -eq [IO.Path]::GetFullPath($PublishedExe)) }
+if ($running) {
+  throw "publish/AudioCarousel.exe is running (PID $($running.Id -join ', ')). Exit it from the tray first."
+}
+
+# publish/audio-carousel.json can be a live config; carry it across the wipe.
+$savedConfig = $null
+if (Test-Path $ConfigPath) {
+  $savedConfig = Join-Path ([IO.Path]::GetTempPath()) ("audio-carousel.json.publish-" + [guid]::NewGuid().ToString('N'))
+  Copy-Item $ConfigPath $savedConfig
+}
+
 if (Test-Path $PublishDir) { Remove-Item -Recurse -Force $PublishDir }
 
 $extra = @()
@@ -31,6 +49,18 @@ dotnet publish (Join-Path $ProjectRoot 'src\AudioCarousel\AudioCarousel.csproj')
   -p:IncludeNativeLibrariesForSelfExtract=true `
   @extra `
   -o $PublishDir
+if ($LASTEXITCODE -ne 0) {
+  if ($savedConfig) { Write-Warning "Publish failed; your config was kept at $savedConfig" }
+  exit $LASTEXITCODE
+}
+
+# The .pdb is not shipped (release.yml zips only the exe); keep publish/ clean.
+Remove-Item (Join-Path $PublishDir '*.pdb') -ErrorAction SilentlyContinue
+
+if ($savedConfig) {
+  Move-Item $savedConfig $ConfigPath -Force
+  Write-Host "Restored existing audio-carousel.json" -ForegroundColor Cyan
+}
 
 Write-Host ""
 Write-Host "Output:" -ForegroundColor Green
