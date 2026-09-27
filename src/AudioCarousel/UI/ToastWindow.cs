@@ -10,7 +10,7 @@ namespace AudioCarousel.UI;
 /// <summary>
 /// The switch notification: navy card with a colored accent bar, icon, app
 /// caption, bold title and a subtitle, plus a close glyph. Same design as
-/// promo/src/components/Toast.tsx (the README hero image renders that).
+/// the mock-up in tools/BrandAssets/Hero.cs (the README hero image).
 /// Never takes focus; a click anywhere dismisses it, hovering pauses it.
 /// </summary>
 public sealed class ToastWindow : Form

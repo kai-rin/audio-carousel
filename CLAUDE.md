@@ -16,7 +16,7 @@ tests/AudioCarousel.Tests/
 scripts/publish.ps1       # the only supported way to build the release exe
 .github/workflows/        # ci.yml (build/test/format), release.yml (tag → attached zip)
 docs/superpowers/specs/   # design docs
-promo/                    # Remotion promo video (separate npm project; not part of the .NET build). After `npm install`, promo/node_modules is huge — prune it from recursive find/grep
+tools/BrandAssets/        # console app that regenerates the icons and README hero images (see "Brand assets are code")
 ```
 
 ## Tech
@@ -34,8 +34,7 @@ dotnet format                # fix EOL/whitespace per .editorconfig (CI runs --v
 pwsh ./scripts/publish.ps1                  # local build → publish/AudioCarousel.exe (~111 MB), version = csproj default 1.0.0-dev
 pwsh ./scripts/publish.ps1 -Version 1.2.3   # release-style override; CI passes the tag here
 powershell -NoProfile -Command "(Get-Item publish/AudioCarousel.exe).VersionInfo | fl ProductVersion, FileVersion"  # verify built version
-cd promo && npm run dev                     # Remotion Studio preview
-cd promo && npm run render                  # → promo/out/promo.mp4 (ja); `npm run render:en` → promo-en.mp4
+dotnet run --project tools/BrandAssets -- all   # regenerate Resources/*.ico and docs/images/hero-*.png (`icons` / `hero` for one)
 ```
 
 `scripts/publish.ps1` is the **only** supported way to produce a release exe. Do not construct `dotnet publish` flags by hand.
@@ -65,7 +64,7 @@ cd promo && npm run render                  # → promo/out/promo.mp4 (ja); `npm
 - **Tests that mutate `Strings._current`** must be in `[Collection("StringsState")]` (defined in `StringsTests.cs`). xUnit parallelizes test classes by default; without the collection, classes that call `Strings.SetLanguage` race against each other and produce flaky failures.
 - **Testable logic goes in `public static` helpers**, not `internal` + `InternalsVisibleTo`. See `Strings`, `HotkeyParser`, `AppVersion` — the test project consumes them through public API only.
 - **About dialog reads `AssemblyInformationalVersion` via `AppVersion.Display`**, which strips the `+sha` suffix appended by `SourceRevisionId`. Add new version-displaying UI through `AppVersion.Display`, not `Assembly.GetName().Version` (that returns the 4-part `AssemblyVersion`, which can't carry prerelease tags like `1.0.0-dev`).
-- **Brand assets are code, not image files.** `promo/src/components/LogoMark.tsx` is the single source of the logo. Icons: `cd promo && npm run icons` renders `IconSheet` → `python scripts/build-icons.py` writes `src/AudioCarousel/Resources/{app,tray-light,tray-dark}.ico` (8 sizes; ≤24 px use the heavier `simplified` mark; the tray swaps light/dark with the taskbar theme via `TrayTheme`). README hero images: `cd promo && npm run hero` (first extracts the app's own UI labels from `Strings.cs` into `promo/src/hero/appStrings.json`, then renders `HeroEn/HeroJa/HeroZhHans`) → `python scripts/optimize-hero.py` (256-color MEDIANCUT; `oxipng` pass if on PATH) → `docs/images/hero-*.png` (~100 KB each). The hero's menu/toast mock-ups mirror `TrayIcon`/`ToastWindow` (same fonts and Segoe Fluent glyph code points as `MenuGlyphs`), so **when you change the tray menu, toast or their strings, re-run `npm run hero`**. Marketing copy lives in `promo/src/hero/heroStrings.ts` with a claim → evidence list; don't add a claim without code or a measurement behind it. Never commit raw or AI-generated hero art.
+- **Brand assets are code, not image files.** `tools/BrandAssets` (.NET console app, in the solution) regenerates them; it needs only .NET and Microsoft Edge, which it drives headlessly to render SVG/HTML to PNG. `Logo.cs` is the single source of the logo (SVG on a 100×100 grid; ≤24 px use the heavier `Simplified`/`Tiny` marks). `icons` writes `src/AudioCarousel/Resources/{app,tray-light,tray-dark}.ico` (8 sizes; the tray swaps light/dark with the taskbar theme via `TrayTheme`). `hero` writes `docs/images/hero-{en,ja,zh-Hans}.png` (1448×1086, ~200–250 KB). The hero references the app assembly directly — menu/toast labels via `Strings.Get`, hotkey text via `HotkeyParser.FormatForDisplay`, glyph code points via `MenuGlyphs` — and its CSS mirrors `FluentMenuRenderer`/`ToastWindow`, so **when you change the tray menu, toast or their strings, re-run the `hero` command**. Marketing copy lives in `tools/BrandAssets/HeroCopy.cs` with a claim → evidence list; don't add a claim without code or a measurement behind it. Never commit raw or AI-generated hero art. Gotcha: some hosts (VS Code's terminal) export `__COMPAT_LAYER=RunAsInvoker`, which makes Edge exit without rendering — `EdgeRenderer` strips it from the child environment.
 - **Debugging endpoint churn**: enumerate `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\<guid>` — `DeviceState` 1=Active, 4=NOTPRESENT, 8=UNPLUGGED. Multiple same-name GUIDs with one Active = NVIDIA HDA churn in action.
 
 ## Workflow

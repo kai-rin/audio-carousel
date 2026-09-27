@@ -9,7 +9,7 @@ namespace AudioCarousel.UI;
 /// Windows 11-style context menu look for the tray menu: no image-margin
 /// gutter, rounded hover highlight, brand-blue checked state, flat border.
 /// The README hero image draws its menu mock-up with the same palette
-/// (promo/src/hero/UiMocks.tsx) — keep them in sync.
+/// (tools/BrandAssets/Hero.cs) — keep them in sync.
 /// </summary>
 public sealed class FluentMenuRenderer : ToolStripProfessionalRenderer
 {
