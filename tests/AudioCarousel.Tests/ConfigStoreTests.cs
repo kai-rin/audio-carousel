@@ -198,6 +198,35 @@ public class ConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_InputDevices_AreNormalizedLikeOutputs()
+    {
+        File.WriteAllText(_path, """
+            {"version":1,"devices":[],"inputCurrentIndex":7,
+             "hotkeyInput":{"modifiers":null,"key":"F14"},
+             "inputDevices":[null,{"endpointId":"m","displayName":null},{"endpointId":"m","displayName":"dup"}]}
+            """);
+        var store = new ConfigStore(_path);
+
+        var result = store.Load();
+
+        Assert.False(result.WasCorrupted);
+        Assert.Single(result.Config.InputDevices);
+        Assert.Equal("", result.Config.InputDevices[0].DisplayName);
+        Assert.Equal(0, result.Config.InputCurrentIndex);
+        Assert.Null(result.Config.HotkeyInput);
+    }
+
+    [Fact]
+    public void Load_MissingInputFields_DefaultToEmpty()
+    {
+        File.WriteAllText(_path, "{\"version\":1,\"devices\":[]}");
+        var result = new ConfigStore(_path).Load();
+        Assert.NotNull(result.Config.InputDevices);
+        Assert.Empty(result.Config.InputDevices);
+        Assert.Null(result.Config.HotkeyInput);
+    }
+
+    [Fact]
     public void Load_NullDevicesList_IsNormalizedNotTreatedAsCorrupt()
     {
         File.WriteAllText(_path, "{\"version\":1,\"devices\":null}");

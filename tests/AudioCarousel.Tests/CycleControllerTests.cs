@@ -294,6 +294,47 @@ public class CycleControllerTests
         Assert.Equal(1, cfg.CurrentIndex);
     }
 
+    // Microphones cycle through their own list and index; the output list
+    // and its index are never touched.
+    [Fact]
+    public void InputTarget_CyclesInputListOnly()
+    {
+        Strings.SetLanguage(Language.English);
+        var audio = new FakeAudioDeviceService();
+        var cfg = new ConfigSchema();
+        cfg.Devices.Add(new DeviceEntry { EndpointId = "spk", DisplayName = "Speakers" });
+        cfg.CurrentIndex = 0;
+        cfg.InputDevices.Add(new DeviceEntry { EndpointId = "mic1", DisplayName = "Mic 1" });
+        cfg.InputDevices.Add(new DeviceEntry { EndpointId = "mic2", DisplayName = "Mic 2" });
+        audio.ActiveOutputs.Add(new AudioDevice("mic1", "Mic 1"));
+        audio.ActiveOutputs.Add(new AudioDevice("mic2", "Mic 2"));
+        audio.Defaults[AudioRole.Multimedia] = "mic1";
+        var sink = new FakeCycleSink();
+        var c = new CycleController(cfg, audio, sink, () => { }, CycleTarget.Input);
+
+        c.Cycle();
+
+        Assert.Equal(1, cfg.InputCurrentIndex);
+        Assert.Equal(0, cfg.CurrentIndex);
+        Assert.All(audio.SetCalls, call => Assert.Equal("mic2", call.id));
+        Assert.Contains("Mic 2", sink.Toasts[^1]);
+    }
+
+    [Fact]
+    public void InputTarget_Empty_ShowsInputSpecificHint()
+    {
+        Strings.SetLanguage(Language.English);
+        var cfg = new ConfigSchema();
+        cfg.Devices.Add(new DeviceEntry { EndpointId = "spk", DisplayName = "Speakers" });
+        var sink = new FakeCycleSink();
+        var c = new CycleController(cfg, new FakeAudioDeviceService(), sink, () => { }, CycleTarget.Input);
+
+        c.Cycle();
+
+        Assert.Single(sink.ErrorToasts);
+        Assert.Equal(Strings.Get("error.noInputDevicesConfigured"), sink.ErrorToasts[0]);
+    }
+
     // Users who keep a dedicated headset for calls (Teams/Discord use the
     // Communications role) can opt out of having it switched.
     [Fact]

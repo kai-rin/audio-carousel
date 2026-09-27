@@ -435,6 +435,17 @@ public static class Strings
             "Nenhum dispositivo no ciclo ainda — clique com o botão direito no ícone da bandeja e abra Configurações",
             "Устройства для переключения не добавлены — щёлкните значок в трее правой кнопкой и откройте настройки",
             "순환할 장치가 없습니다 — 트레이 아이콘을 마우스 오른쪽 버튼으로 클릭해 설정에서 추가하세요"),
+        ["error.noInputDevicesConfigured"] = M(
+            "No microphones to cycle yet — add them on the Recording tab in Settings",
+            "切替用のマイクが未登録です — 設定の「録音」タブで追加してください",
+            "尚未添加要切换的麦克风 — 请在设置的“录制”选项卡中添加",
+            "尚未新增要切換的麥克風 — 請在設定的「錄製」索引標籤中新增",
+            "Aún no hay micrófonos en el ciclo: agréguelos en la pestaña Grabación de Configuración",
+            "Aucun microphone à parcourir : ajoutez-en dans l'onglet Enregistrement des Paramètres",
+            "Noch keine Mikrofone im Wechsel – im Tab „Aufnahme“ der Einstellungen hinzufügen",
+            "Nenhum microfone no ciclo ainda — adicione-os na guia Gravação das Configurações",
+            "Микрофоны для переключения не добавлены — добавьте их на вкладке «Запись» в настройках",
+            "순환할 마이크가 없습니다 — 설정의 '녹음' 탭에서 추가하세요"),
         ["error.configCorrupted"] = M(
             "Configuration file was corrupted. A backup was saved as audio-carousel.json.bak and defaults are now in use.",
             "設定ファイルが破損していました。audio-carousel.json.bakにバックアップを保存し、デフォルト設定で起動します。",

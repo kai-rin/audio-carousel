@@ -23,6 +23,16 @@ public sealed class ConfigSchema
     [JsonPropertyName("currentIndex")]
     public int CurrentIndex { get; set; }
 
+    // Microphones / recording devices, cycled independently of outputs.
+    [JsonPropertyName("inputDevices")]
+    public List<DeviceEntry> InputDevices { get; set; } = new();
+
+    [JsonPropertyName("inputCurrentIndex")]
+    public int InputCurrentIndex { get; set; }
+
+    [JsonPropertyName("hotkeyInput")]
+    public HotkeyEntry? HotkeyInput { get; set; }
+
     [JsonPropertyName("startWithWindows")]
     public bool StartWithWindows { get; set; }
 
@@ -50,18 +60,24 @@ public sealed class ConfigSchema
         Language = Language,
         Hotkey = CloneHotkey(Hotkey),
         HotkeyPrevious = CloneHotkey(HotkeyPrevious),
-        Devices = Devices.Select(d => new DeviceEntry
-        {
-            EndpointId = d.EndpointId,
-            DisplayName = d.DisplayName,
-            AddedAt = d.AddedAt,
-        }).ToList(),
+        HotkeyInput = CloneHotkey(HotkeyInput),
+        Devices = CloneDevices(Devices),
         CurrentIndex = CurrentIndex,
+        InputDevices = CloneDevices(InputDevices),
+        InputCurrentIndex = InputCurrentIndex,
         StartWithWindows = StartWithWindows,
         SwitchCommunications = SwitchCommunications,
         ShowToast = ShowToast,
         LeftClickCycles = LeftClickCycles,
     };
+
+    private static List<DeviceEntry> CloneDevices(List<DeviceEntry> devices) =>
+        devices.Select(d => new DeviceEntry
+        {
+            EndpointId = d.EndpointId,
+            DisplayName = d.DisplayName,
+            AddedAt = d.AddedAt,
+        }).ToList();
 
     private static HotkeyEntry? CloneHotkey(HotkeyEntry? entry) => entry is null ? null : new HotkeyEntry
     {

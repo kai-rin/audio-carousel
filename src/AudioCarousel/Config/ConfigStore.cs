@@ -163,9 +163,21 @@ public sealed class ConfigStore
         if (string.IsNullOrWhiteSpace(config.Language))
             config.Language = "auto";
 
+        config.Devices = NormalizeDevices(config.Devices);
+        config.InputDevices = NormalizeDevices(config.InputDevices);
+
+        config.Hotkey = NormalizeHotkey(config.Hotkey);
+        config.HotkeyPrevious = NormalizeHotkey(config.HotkeyPrevious);
+        config.HotkeyInput = NormalizeHotkey(config.HotkeyInput);
+
+        ClampCurrentIndex(config);
+    }
+
+    private static List<DeviceEntry> NormalizeDevices(List<DeviceEntry>? source)
+    {
         var devices = new List<DeviceEntry>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var device in config.Devices ?? new List<DeviceEntry>())
+        foreach (var device in source ?? new List<DeviceEntry>())
         {
             if (device is null) continue;
             device.EndpointId ??= "";
@@ -174,12 +186,7 @@ public sealed class ConfigStore
             if (device.EndpointId.Length > 0 && !seenIds.Add(device.EndpointId)) continue;
             devices.Add(device);
         }
-        config.Devices = devices;
-
-        config.Hotkey = NormalizeHotkey(config.Hotkey);
-        config.HotkeyPrevious = NormalizeHotkey(config.HotkeyPrevious);
-
-        ClampCurrentIndex(config);
+        return devices;
     }
 
     private static HotkeyEntry? NormalizeHotkey(HotkeyEntry? hotkey)
@@ -192,12 +199,10 @@ public sealed class ConfigStore
 
     private static void ClampCurrentIndex(ConfigSchema config)
     {
-        if (config.Devices.Count == 0)
-        {
-            config.CurrentIndex = 0;
-            return;
-        }
-        if (config.CurrentIndex < 0 || config.CurrentIndex >= config.Devices.Count)
-            config.CurrentIndex = 0;
+        config.CurrentIndex = Clamp(config.CurrentIndex, config.Devices.Count);
+        config.InputCurrentIndex = Clamp(config.InputCurrentIndex, config.InputDevices.Count);
     }
+
+    private static int Clamp(int index, int count) =>
+        index < 0 || index >= count ? 0 : index;
 }

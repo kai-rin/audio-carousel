@@ -4,10 +4,19 @@ namespace AudioCarousel.Audio;
 
 public sealed class AudioDeviceService : IAudioDeviceService
 {
+    private readonly DataFlow _flow;
+
+    // One instance per direction: the "outputs" in the interface's member
+    // names are microphones for a Capture instance.
+    public AudioDeviceService(AudioFlow flow = AudioFlow.Render)
+    {
+        _flow = flow == AudioFlow.Capture ? DataFlow.Capture : DataFlow.Render;
+    }
+
     public IReadOnlyList<AudioDevice> EnumerateActiveOutputs()
     {
         using var enumerator = new MMDeviceEnumerator();
-        var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+        var devices = enumerator.EnumerateAudioEndPoints(_flow, DeviceState.Active);
         var result = new List<AudioDevice>(devices.Count);
         foreach (var d in devices)
         {
@@ -35,7 +44,7 @@ public sealed class AudioDeviceService : IAudioDeviceService
         using var enumerator = new MMDeviceEnumerator();
         try
         {
-            using var d = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, ToNAudioRole(role));
+            using var d = enumerator.GetDefaultAudioEndpoint(_flow, ToNAudioRole(role));
             return d.ID;
         }
         catch

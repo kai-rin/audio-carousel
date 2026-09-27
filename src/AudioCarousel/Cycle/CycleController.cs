@@ -4,6 +4,13 @@ using AudioCarousel.I18n;
 
 namespace AudioCarousel.Cycle;
 
+/// <summary>Which device list a controller cycles.</summary>
+public enum CycleTarget
+{
+    Output,
+    Input,
+}
+
 public sealed class CycleController
 {
     private static readonly AudioRole[] AllRoles =
@@ -15,17 +22,35 @@ public sealed class CycleController
     private readonly IAudioDeviceService _audio;
     private readonly ICycleSink _sink;
     private readonly Action _persistConfig;
+    private readonly CycleTarget _target;
 
     public CycleController(
         ConfigSchema config,
         IAudioDeviceService audio,
         ICycleSink sink,
-        Action persistConfig)
+        Action persistConfig,
+        CycleTarget target = CycleTarget.Output)
     {
         _config = config;
         _audio = audio;
         _sink = sink;
         _persistConfig = persistConfig;
+        _target = target;
+    }
+
+    // Read through the config every time: SettingsForm's OK path replaces
+    // the list instances.
+    private List<DeviceEntry> Devices =>
+        _target == CycleTarget.Input ? _config.InputDevices : _config.Devices;
+
+    private int CurrentIndex
+    {
+        get => _target == CycleTarget.Input ? _config.InputCurrentIndex : _config.CurrentIndex;
+        set
+        {
+            if (_target == CycleTarget.Input) _config.InputCurrentIndex = value;
+            else _config.CurrentIndex = value;
+        }
     }
 
     public void Cycle() => Step(+1);
@@ -35,16 +60,18 @@ public sealed class CycleController
 
     private void Step(int direction)
     {
-        if (_config.Devices.Count == 0)
+        if (Devices.Count == 0)
         {
-            _sink.ShowErrorToast(Strings.Get("error.noDevicesConfigured"));
+            _sink.ShowErrorToast(Strings.Get(_target == CycleTarget.Input
+                ? "error.noInputDevicesConfigured"
+                : "error.noDevicesConfigured"));
             return;
         }
 
         var live = _audio.EnumerateActiveOutputs();
         // Heal before building the available set and before the sync below, so a
         // re-bound entry (endpoint-ID churn) is both selectable and syncable.
-        bool healed = DeviceMatcher.HealEndpointIds(_config.Devices, live);
+        bool healed = DeviceMatcher.HealEndpointIds(Devices, live);
         var available = new HashSet<string>(
             live.Select(d => d.EndpointId),
             StringComparer.Ordinal);
@@ -53,16 +80,16 @@ public sealed class CycleController
         string? currentDefault = _audio.GetDefaultOutputId(AudioRole.Multimedia);
         if (currentDefault is not null)
         {
-            int syncIndex = _config.Devices.FindIndex(d => d.EndpointId == currentDefault);
-            if (syncIndex >= 0) _config.CurrentIndex = syncIndex;
+            int syncIndex = Devices.FindIndex(d => d.EndpointId == currentDefault);
+            if (syncIndex >= 0) CurrentIndex = syncIndex;
         }
 
-        int count = _config.Devices.Count;
+        int count = Devices.Count;
         int targetIndex = -1;
         for (int offset = 1; offset <= count; offset++)
         {
-            int i = ((_config.CurrentIndex + direction * offset) % count + count) % count;
-            if (available.Contains(_config.Devices[i].EndpointId))
+            int i = ((CurrentIndex + direction * offset) % count + count) % count;
+            if (available.Contains(Devices[i].EndpointId))
             {
                 targetIndex = i;
                 break;
@@ -86,12 +113,12 @@ public sealed class CycleController
     /// </summary>
     public void SwitchTo(string endpointId)
     {
-        if (_config.Devices.Count == 0) return;
+        if (Devices.Count == 0) return;
 
         var live = _audio.EnumerateActiveOutputs();
-        bool healed = DeviceMatcher.HealEndpointIds(_config.Devices, live);
+        bool healed = DeviceMatcher.HealEndpointIds(Devices, live);
 
-        int targetIndex = _config.Devices.FindIndex(d => d.EndpointId == endpointId);
+        int targetIndex = Devices.FindIndex(d => d.EndpointId == endpointId);
         bool isAvailable = live.Any(d => string.Equals(d.EndpointId, endpointId, StringComparison.Ordinal));
         if (targetIndex < 0 || !isAvailable)
         {
@@ -105,7 +132,7 @@ public sealed class CycleController
 
     private void ApplySwitch(int targetIndex, bool healed)
     {
-        var target = _config.Devices[targetIndex];
+        var target = Devices[targetIndex];
         var roles = _config.SwitchCommunications ? AllRoles : NonCommunicationRoles;
 
         var applied = new List<(AudioRole role, string? previous)>(roles.Length);
@@ -127,9 +154,10 @@ public sealed class CycleController
             return;
         }
 
-        _config.CurrentIndex = targetIndex;
+        CurrentIndex = targetIndex;
         _persistConfig();
-        _sink.ShowToast(target.DisplayName);
+        // Mark microphone switches so they can't be mistaken for output ones.
+        _sink.ShowToast(_target == CycleTarget.Input ? "\U0001F3A4 " + target.DisplayName : target.DisplayName);
         _sink.NotifyCurrentDeviceChanged();
     }
 
