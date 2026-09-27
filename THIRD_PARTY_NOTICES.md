@@ -17,7 +17,7 @@ licensed under the [MIT License](LICENSE).
 | Component | Version | License | Source |
 |-----------|---------|---------|--------|
 | xUnit | 2.9.3 | Apache-2.0 | https://github.com/xunit/xunit |
-| xunit.runner.visualstudio | 3.1.5 | Apache-2.0 | https://github.com/xunit/visualstudio.xunit |
+| xunit.runner.visualstudio | 4.0.0 | Apache-2.0 | https://github.com/xunit/visualstudio.xunit |
 | Microsoft.NET.Test.Sdk | 18.10.1 | MIT | https://github.com/microsoft/vstest |
 
 The full text of each license is reproduced in the upstream repositories
